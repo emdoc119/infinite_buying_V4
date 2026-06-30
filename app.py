@@ -355,10 +355,10 @@ def auto_sync_kis(cycle_id: str = Query(...)):
         paper_trading = os.getenv("KIS_PAPER_TRADING", "True").lower() == "true"
         adapter = KISBrokerAdapter(paper_trading=paper_trading)
         
-        # 어제부터 오늘까지의 체결 내역 조회 (미국장 심야 체결 누락 방지)
+        # 최근 4일간의 체결 내역 조회 (주말 미국장 및 휴일 체결 누락 방지)
         today = date.today()
-        yesterday = today - timedelta(days=1)
-        fills = adapter.get_fills(current_cycle.params.symbol.value, yesterday, today)
+        start_date = today - timedelta(days=4)
+        fills = adapter.get_fills(current_cycle.params.symbol.value, start_date, today)
         
         messages = []
         
