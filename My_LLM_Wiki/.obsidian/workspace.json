@@ -1,0 +1,217 @@
+{
+  "main": {
+    "id": "80f72d3bbaf5e199",
+    "type": "split",
+    "children": [
+      {
+        "id": "b2da93f0667193e1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b840088ebb674ce8",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "새 탭"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "e30c3901b48f0dc3",
+    "type": "split",
+    "children": [
+      {
+        "id": "a8936cf2c0fe3fa0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bcfffbe6b86f2f5d",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "무제.canvas",
+                "viewState": {
+                  "x": 0,
+                  "y": 0,
+                  "zoom": 0
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "무제"
+            }
+          },
+          {
+            "id": "6e114ed28871af67",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "파일 탐색기"
+            }
+          },
+          {
+            "id": "4813d3f9506c72b7",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "5a7b4a4fbab9c172",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "09fd1a28d7f97653",
+    "type": "split",
+    "children": [
+      {
+        "id": "5434045cd65b21e6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4dc98531574627c4",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "무제.canvas",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "무제 의 백링크"
+            }
+          },
+          {
+            "id": "3909045acefbd5d6",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "무제.canvas",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "무제 의 나가는 링크"
+            }
+          },
+          {
+            "id": "4c0177bed72e4442",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "a97cea94aa048c6e",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "dafed69db1ee40b3",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "무제.canvas",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "무제 의 개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:빠른 전환기 열기": false,
+      "graph:그래프 뷰 열기": false,
+      "canvas:새 캔버스 만들기": false,
+      "daily-notes:오늘의 일일 노트 열기": false,
+      "templates:템플릿 삽입": false,
+      "command-palette:명령어 팔레트 열기": false,
+      "bases:새 베이스 생성하기": false
+    }
+  },
+  "active": "bcfffbe6b86f2f5d",
+  "lastOpenFiles": [
+    "무제.canvas",
+    "논문 아이디어 구체화 하기 with LLM.md",
+    "논문 서론 쓰기.md",
+    "raw/Pasted image 20260620224123.png",
+    "wiki/kospi-stock-chart-analysis-(naver-finance).md",
+    "wiki/investment-forum-snippets---april-2024.md",
+    "wiki/kospi-index-overview-(late-june-2026).md",
+    "wiki/effective-llm-prompting-for-academic-writing.md",
+    "raw/IMG_8549.PNG",
+    "AGENTS.md",
+    "wiki/effective-llm-prompting-for-academic-writing-and-structured-workflows.md",
+    "wiki/anuk-hotel-incheon-guwol-branch-sauna-experience.md",
+    "wiki/ai-scientist.md",
+    "wiki/academic-paper-writing-workflow.md",
+    "wiki/아늑호텔-구월점-사우나-경험.md"
+  ]
+}

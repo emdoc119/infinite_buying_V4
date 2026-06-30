@@ -1,0 +1,86 @@
+﻿Layer,Layer_KR,Company,Ticker,Country,Stage_Code,Stage_Label,Reason
+L0,원자재,Freeport-McMoRan,FCX,🇺🇸,A,🟢 지금 실적,구리 $6.60 역사적 최고가. AI·전력·EV 3개 테마 동시 걸림. EBITDA $120억 예상
+L0,원자재,Southern Copper,SCCO,🇺🇸,A,🟢 지금 실적,구리 공급 부족 구조적 지속. Goldman Sachs Buy 유지. 2040년까지 공급 갭 1000만톤
+L0,원자재,Albemarle,ALB,🇺🇸,B,🟡 1년 선행,"Q1 2026 매출 YoY +33%, EBITDA +148%. 리튬 수요 2030년 2배 전망"
+L0,원자재,POSCO홀딩스,005490,🇰🇷,A,🟢 지금 실적,방향성 전기강판(GOES) 탑티어 생산. AI 전력기기 변압기 코어 병목 직결
+L0,원자재,OCI홀딩스,010060,🇰🇷,C,🔵 장기 옵션,폴리실리콘·반도체 특수가스 소재. 2026 턴어라운드 전제 필요
+L1-A,기존 컴퓨팅,NVIDIA,NVDA,🇺🇸,A,🟢 지금 실적,AI 인프라 수요 창출 근원. 포토닉스·냉각까지 스택 통제. Coherent·Lumentum $20억 전략투자
+L1-A,기존 컴퓨팅,Broadcom,AVGO,🇺🇸,A,🟢 지금 실적,Google TPU·Meta MTIA 커스텀 ASIC 설계 파트너. 네트워킹 스위치 병목 동시 장악
+L1-A,기존 컴퓨팅,TSMC,TSM,🇺🇸,A,🟢 지금 실적,NVIDIA·AMD·Apple·Alphabet 모든 AI칩 제조 허브. 2026 CapEx $520~560억 사상 최고
+L1-A,기존 컴퓨팅,SK하이닉스,000660,🇰🇷,A,🟢 지금 실적,HBM3E·HBM4 NVIDIA 전략적 1순위 파트너. HBM 퍼스트 무버 지위 유지
+L1-A,기존 컴퓨팅,삼성전자,005930,🇰🇷,B,🟡 1년 선행,HBM4 양산·NVIDIA 2순위 공급 계약 확인 시 재진입 트리거. 현재 파운드리 수율 개선 중
+L1-A,기존 컴퓨팅,한미반도체,042700,🇰🇷,A,🟢 지금 실적,HBM 후공정 Dual TC 본더 핵심 공급사. SK하이닉스 수주 직결. 미국 상장 없음
+L1-A,기존 컴퓨팅,Micron,MU,🇺🇸,A,🟢 지금 실적,HBM 미국 상장 대표축. 미국 내 HBM 생산 확대. 지정학 리스크 분산 수요
+L1-B,자체칩 도전자,Alphabet,GOOGL,🇺🇸,B,🟡 1년 선행,TPU v6 Trillium 자체칩 완성도 최고. NVIDIA 의존도 가장 낮은 빅테크. 2026 CapEx $800억+
+L1-B,자체칩 도전자,Microsoft,MSFT,🇺🇸,B,🟡 1년 선행,Maia AI 가속기·Cobalt CPU 자체 개발. 2026 CapEx $1900억. ETF 편입으로 이번 포트 제외
+L1-B,자체칩 도전자,Meta,META,🇺🇸,B,🟡 1년 선행,MTIA 자체 가속기. CapEx $1250억. L5 원전·ESS 최대 발주처. ETF 편입으로 이번 포트 제외
+L1-B,자체칩 도전자,AMD,AMD,🇺🇸,B,🟡 1년 선행,MI300X/MI400 NVIDIA 훈련 시장 도전. TSMC·Broadcom으로 간접 커버 가능해 포트 미편입
+L1-C,검사·소부장,Onto Innovation,ONTO,🇺🇸,A,🟢 지금 실적,Q4 2025 매출 $2.67억 사상 최고. HBM VPA 계약 $2.4억. 패키징 성장 +30%
+L1-C,검사·소부장,FormFactor,FORM,🇺🇸,C,🔵 장기 옵션,HBM·AI·첨단 패키징 테스트 서브시스템 세계 1위. 포트 편입 시 Onto와 병행 가능
+L1-C,검사·소부장,Camtek,CAMT,🇮🇱,B,🟡 1년 선행,HBM·칩렛·하이브리드 본딩 검사 플랫폼. 첨단 패키징 수주 급증
+L1-C,검사·소부장,Synopsys,SNPS,🇺🇸,B,🟡 1년 선행,AI칩 설계 자동화 EDA 양대 산맥. 칩 복잡도 올라갈수록 구조적 수요 확대
+L1-C,검사·소부장,Cadence,CDNS,🇺🇸,B,🟡 1년 선행,Synopsys와 EDA 시장 양분. AI칩 설계 소프트웨어 구독형 반복 매출
+L1-C,검사·소부장,HPSP,403870,🇰🇷,A,🟢 지금 실적,세계 유일 고압 수소 어닐링 장비. 삼성·TSMC·인텔 전 선단 파운드리 고객. 경쟁사 없음
+L1-C,검사·소부장,리노공업,058470,🇰🇷,B,🟡 1년 선행,테스트 핀·소켓 글로벌 탑티어. HBM 테스트 수요 연동. 높은 영업이익률 구조
+L1-C,검사·소부장,ISC,095340,🇰🇷,B,🟡 1년 선행,HBM용 실리콘 러버 소켓 선두. 패키징 수요 확대 직접 수혜
+L1-C,검사·소부장,피에스케이,319660,🇰🇷,B,🟡 1년 선행,Asher 글로벌 1위. 후공정 공정 확대 수혜. 삼성·SK 양사 고객
+L2,열관리·냉각,Vertiv,VRT,🇺🇸,A,🟢 지금 실적,NVIDIA GB300 NVL72 142kW 냉각·전력 레퍼런스 아키텍처 공동 설계. AI DC 현재형 수혜 최강
+L2,열관리·냉각,GST,083450,🇰🇷,B,🟡 1년 선행,자체 액침냉각 CDU 개발 + S-OIL 공동 솔루션. 한국 냉각 레이어 선행주 중 실체 가장 강함
+L2,열관리·냉각,케이엔솔,381970,🇰🇷,B,🟡 1년 선행,Submer 협력 침지냉각. 국내 DC 액침냉각 채택 확산 수혜
+L2,열관리·냉각,LG전자,066570,🇰🇷,B,🟡 1년 선행,AI Box 내 CDU·에어컨 공급. HVAC 역량 B2B 데이터센터 전환 진행 중
+L2.5,수자원·수처리,Ecolab,ECL,🇺🇸,A,🟢 지금 실적,AI DC 냉각수 수처리 유일한 통합 솔루션. 오비보 인수로 반도체 초순수 진입. 구독매출 65%
+L2.5,수자원·수처리,American Water Works,AWK,🇺🇸,A,🟢 지금 실적,미국 최대 상수도 유틸리티. DC 입지 결정의 핵심 인프라. 방어형 배당주 성격
+L3,광통신,Coherent,COHR,🇺🇸,B,🟡 1년 선행,NVIDIA $20억 전략투자 + 다년 구매 약정. 800G→1.6T 전환 사이클 핵심
+L3,광통신,Lumentum,LITE,🇺🇸,B,🟡 1년 선행,NVIDIA $20억 투자 + 구매 약정. EML 레이저 칩셋 글로벌 탑티어
+L3,광통신,Marvell,MRVL,🇺🇸,B,🟡 1년 선행,PAM4 DSP + 차세대 광모듈 칩셋. 광통신과 커스텀 ASIC 양쪽 AI 선행
+L3,광통신,POET Technologies,POET,🇨🇦,B,🟡 1년 선행,Semtech와 1.6T DR8 광엔진 공동 출시. 800G 광엔진 생산 주문 $500만
+L3,광통신,이수페타시스,007660,🇰🇷,B,🟡 1년 선행,1.6T 고다층 MLB 기판 글로벌 공급. 네트워크 스위치·라우터향 수주 급증
+L3,광통신,오이솔루션,138080,🇰🇷,B,🟡 1년 선행,데이터센터용 광트랜시버 진출 확인. DC 광통신 인프라 확장 국내 선행주
+L3,광통신,대한광통신,010170,🇰🇷,B,🟡 1년 선행,국내 광케이블 원천 제조 기반. AI DC 광통신 인프라 확장 수혜
+L4,그리드 하드웨어,Eaton,ETN,🇺🇸,A,🟢 지금 실적,전력기기·배전 장비 AI DC 수요 현재형 수혜 1위. 스위치기어·UPS 백로그 최고
+L4,그리드 하드웨어,GE Vernova,GEV,🇺🇸,A,🟢 지금 실적,미국 그리드 재건 + AI DC 가스터빈 1위. 전력망 장비와 발전 이중 레이어 수혜
+L4,그리드 하드웨어,Powell Industries,POWL,🇺🇸,A,🟢 지금 실적,시총 작아 ETF 비편입. AI DC 스위치기어 백로그 $4억+ 최고치 경신
+L4,그리드 하드웨어,Preformed Line Products,PLPC,🇺🇸,A,🟢 지금 실적,송전선 고정 장치 세계 1위. 숨은 병목 강자. ETF 미편입 소형주
+L4,그리드 하드웨어,Valmont Industries,VMI,🇺🇸,B,🟡 1년 선행,초고압 송전탑·구조물 제조 전문. 북미 그리드 재건 직접 수혜
+L4,그리드 하드웨어,HD현대일렉트릭,267260,🇰🇷,A,🟢 지금 실적,초고압 변압기 쇼티지 최대 수혜. 미국향 수주 지속 확대. 리드타임 2~3년 고착
+L4,그리드 하드웨어,LS 지주,006260,🇰🇷,A,🟢 지금 실적,LS전선+LS ELECTRIC+LS MnM 복합 수혜. NAV 대비 30~40% 할인. ETF 미편입 원천
+L4,그리드 하드웨어,효성중공업,298040,🇰🇷,B,🟡 1년 선행,유럽·미국 송전망 수주 가속. 수익성 개선 중. 전력기기 3순위 추가 편입 시 고려
+L4.5,EPC·운영,Quanta Services,PWR,🇺🇸,A,🟢 지금 실적,백로그 $486억 사상 최고. 데이터센터 기초토목 YoY +125%. 전력 인프라 EPC 1위
+L4.5,EPC·운영,Sterling Infrastructure,STRL,🇺🇸,A,🟢 지금 실적,데이터센터 기초토목 세그먼트 YoY +125% 확인. ETF 비편입 소형주
+L4.5,EPC·운영,Accenture,ACN,🇺🇸,A,🟢 지금 실적,Google Cloud·MS AI 에이전틱 전환 파트너십. AI 인프라 EPC+AX 통합
+L4.5,EPC·운영,LG CNS,상장예정,🇰🇷,B,🟡 1년 선행,AI Box 576GPU/1.2MW/6개월 납기. Google Cloud 2026 한국 파트너. 모듈형 DC 국내 선도
+L4.5,EPC·운영,삼성SDS,018260,🇰🇷,B,🟡 1년 선행,국가 AI 센터 파트너 선정. AI·클라우드 매출 YoY +30%. 삼성 생태계 연계
+L5-A,원전·IPP,Constellation Energy,CEG,🇺🇸,B,🟡 1년 선행,MS 스리마일섬 원전 PPA. 에너지부 $10억 대출 약정. AI DC 24/7 전력 수요 구조적
+L5-A,원전·IPP,Vistra,VST,🇺🇸,B,🟡 1년 선행,Meta 원전 3기 20년 PPA. 2035년까지 2.6GW 공급. 텍사스 전력 시장 최강자
+L5-A,원전·IPP,Talen Energy,TLN,🇺🇸,B,🟡 1년 선행,Amazon AWS 데이터센터 원전 직결 계약. 원전 직결 모델 선구자
+L5-A,원전·IPP,BWX Technologies,BWXT,🇺🇸,C,🔵 장기 옵션,미 해군 원자로 독점 공급 기반. 민간 SMR 연료 가공 핵심. 장기 수요 구조 탄탄
+L5-A,원전·IPP,Oklo,OKLO,🇺🇸,C,🔵 장기 옵션,Meta·Switch 등 14GW 선계약. 오하이오 착공 2026. 상업발전 2030년. 현재 매출 미미
+L5-A,원전·IPP,두산에너빌리티,034020,🇰🇷,A,🟢 지금 실적,가스터빈 5기 공급 계약 완료(현재형) + SMR 주기기 허브(장기). 이중 레이어 수혜
+L5-B,ESS·BESS,Fluence Energy,FLNC,🇺🇸,B,🟡 1년 선행,수주잔고 $56억 YoY +106%. AI DC BESS 첫 계약 예고. GPU 전력 진동 완충 핵심
+L5-B,ESS·BESS,Tesla Energy,TSLA,🇺🇸,B,🟡 1년 선행,Megapack AI DC 직접 타겟. GPU 전력 진동 90% 감쇄. 휴스턴 3공장 2026 가동
+L5-B,ESS·BESS,LG에너지솔루션,373220,🇰🇷,B,🟡 1년 선행,미국 탈중국 수혜. LFP ESS 미국향 공급 확대. IRA 혜택 지속
+L5-B,ESS·BESS,삼성SDI,006400,🇰🇷,B,🟡 1년 선행,고에너지밀도 ESS 글로벌 공급. 유럽 BESS 성장 수혜
+L5-B,ESS·BESS,Form Energy,비상장,🇺🇸,C,🔵 장기 옵션,Crusoe 12GWh 철-공기 배터리 계약. 인도 2027 착공. LDES 검증 단계
+L5-C,태양광·재생에너지,First Solar,FSLR,🇺🇸,A,🟢 지금 실적,NextEra 2.4GW 공급 계약. 미국산 박막 패널 IRA 관세 혜택 최대 수혜
+L5-C,태양광·재생에너지,NextEra Energy,NEE,🇺🇸,A,🟢 지금 실적,Meta·Google AI DC 2.5GW 청정에너지 공급. 태양광+BESS+원전 올라운더
+L5-C,태양광·재생에너지,한화솔루션,009830,🇰🇷,B,🟡 1년 선행,QCells 공장 기반 IRA 혜택. 태양광+ESS 통합 패키지 공급 구조
+L5-D,천연가스 BTM 발전,GE Vernova,GEV,🇺🇸,A,🟢 지금 실적,가스터빈 납기 3년(vs 경쟁 5년). AI DC 전력 가장 빠른 공급원. NextEra 텍사스 대형 계약
+L5-D,천연가스 BTM 발전,Bloom Energy,BE,🇺🇸,B,🟡 1년 선행,Brookfield AI 팩토리 핵심 파트너 선정. 연료전지 온사이트 발전 선두
+L5-D,천연가스 BTM 발전,HD현대중공업,329180,🇰🇷,B,🟡 1년 선행,힘센엔진 AI DC 발전용 684MW 역대 최대 계약. 조선+발전 이중 수혜 구조
+L5-D,천연가스 BTM 발전,두산에너빌리티,034020,🇰🇷,A,🟢 지금 실적,가스터빈 빅테크향 380MW×5기 공급 계약 완료. 현재 실적 발생 중
+L5-D,천연가스 BTM 발전,Energy Transfer,ET,🇺🇸,A,🟢 지금 실적,AI DC향 가스 공급 파이프라인 백로그 급증. Q1 2026 DC 계약 건수 사상 최고
+L6,피지컬AI,Ouster,OUST,🇺🇸,A,🟢 지금 실적,FY25 매출 $1.69억 YoY +52%. 제품 마진 60% 개선. 산업용 라이다 입증
+L6,피지컬AI,Innoviz,INVZ,🇮🇱,B,🟡 1년 선행,BMW·폭스바겐 공급망. 국방·보안 피지컬AI 침투. CES 2026 InnovizThree 데모
+L6,피지컬AI,Symbotic,SYM,🇺🇸,B,🟡 1년 선행,월마트 낙점 물류 피지컬AI 자동화. 실제 상업 배치 단계
+L6,피지컬AI,Aeva Technologies,AEVA,🇺🇸,C,🔵 장기 옵션,글로벌 Top10 유럽 OEM FMCW 4D 라이다 독점 선정. 생산 2028년 목표
+L6,피지컬AI,레인보우로보틱스,277810,🇰🇷,C,🔵 장기 옵션,삼성 파트너십+휴머노이드 플랫폼. 한국 피지컬AI 서사 대표. 실적 가시성 아직 낮음
+L6,피지컬AI,SBB테크,388790,🇰🇷,C,🔵 장기 옵션,파동 감속기 양산 라인 보유. 로봇 구동계 국산화 선두 후보
+L7,우주 인프라,Rocket Lab,RKLB,🇺🇸,C,🔵 장기 옵션,발사체·위성·우주 태양광 수직계열화. 소형 위성 배치 비용 최저
+L7,우주 인프라,Redwire,RDW,🇺🇸,C,🔵 장기 옵션,ISS IROSA 태양광 4쌍 납품 완료. ELSA 2026 출시. 매출 가이던스 $4.5~5억
+L7,우주 인프라,Spire Global,SPIR,🇺🇸,C,🔵 장기 옵션,저궤도 위성 수집 데이터 AI 처리 엣지 서비스
+L7,우주 인프라,Planet Labs,PL,🇺🇸,C,🔵 장기 옵션,고빈도 지구 관측 위성. 국방·농업·공급망 모니터링 수요 확대
+L7,우주 인프라,쎄트렉아이,099320,🇰🇷,C,🔵 장기 옵션,국내 위성 시스템·고해상도 카메라 전문. 한국 우주 공급망 대표주
+L8,사이버보안,CrowdStrike,CRWD,🇺🇸,A,🟢 지금 실적,Falcon+Charlotte AI 자율 위협 탐지. AI 인프라 확장 = 공격 표면 확장. 구조적 수요
+L8,사이버보안,Palo Alto Networks,PANW,🇺🇸,A,🟢 지금 실적,FY26 1Q 매출 +16% YoY $25억. AI 중심 플랫폼 전략. 제로트러스트 시장 선도
+L8,사이버보안,Zscaler,ZS,🇺🇸,B,🟡 1년 선행,클라우드 네이티브 제로트러스트. AI DC 네트워크 보안 핵심 솔루션
+L8,사이버보안,안랩,053800,🇰🇷,B,🟡 1년 선행,국내 AI DC 보안 1위. 공공·금융 고객 기반. 국산 보안 의무화 정책 수혜

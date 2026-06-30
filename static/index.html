@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무한매수법 4.0 (Lupe Style)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Manual Sync Modal -->
+    <div id="sync-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>보유 내역 수동 동기화 (중간 합류)</h3>
+                <span class="close-modal" id="close-sync-modal">&times;</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">
+                현재 증권사 앱에 찍혀있는 보유 수량과 평단가를 입력하시면, 투입된 예산을 역산하여 현재 회차(T)로 즉시 이동합니다.
+            </p>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.95rem; font-weight: 600; display: block; margin-bottom: 8px;">현재 보유 수량 (주)</label>
+                <input type="number" id="sync-quantity" class="input-light" placeholder="예: 30" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-size: 0.95rem; font-weight: 600; display: block; margin-bottom: 8px;">현재 평균 단가 ($)</label>
+                <input type="number" id="sync-avg-price" step="0.0001" class="input-light" placeholder="예: 15.50" required>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-outline" id="btn-cancel-sync" style="flex: 1;">취소</button>
+                <button class="btn btn-primary" id="btn-submit-sync" style="flex: 1;">동기화 완료</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+        <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+        <header class="app-header">
+            <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="flex: 1; text-align: left; cursor: pointer;" id="logo-btn">
+                    <h1>무한매수법 4.0 by choo</h1>
+                    <div class="subtitle" id="header-subtitle"><span id="head-symbol">TQQQ</span> · <span id="head-split">40분할</span> · <span id="head-budget">$20,000</span></div>
+                </div>
+            </div>
+        </header>
+
+    <nav class="tabs" id="main-tabs" style="display: none;">
+        <button class="tab active" id="tab-current">현재</button>
+        <button class="tab" id="tab-analysis">분석</button>
+        <button class="tab" id="tab-guide">가이드</button>
+    </nav>
+
+    <!-- 홈 화면 (사이클 목록) -->
+    <main class="container" id="home-panel">
+        <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">내 사이클 목록</h2>
+            <div id="cycle-cards-container" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- 동적으로 사이클 카드 추가됨 -->
+            </div>
+        </div>
+        <button id="btn-show-setup" class="btn btn-primary" style="padding: 16px; font-size: 1.1rem; border-radius: 12px;">+ 새로운 사이클 시작</button>
+    </main>
+
+    <!-- 설정 화면 (초기) -->
+    <main class="container hidden" id="setup-panel">
+        <div class="card">
+            <h2>새로운 사이클 시작</h2>
+            <form id="setup-form">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">사이클 이름 (선택)</label>
+                    <input type="text" id="param-name" placeholder="예: TQQQ 장기투자 1차" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 1rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">종목</label>
+                    <div class="radio-group" id="symbol-group">
+                        <button type="button" class="radio-btn active" data-val="TQQQ">TQQQ</button>
+                        <button type="button" class="radio-btn" data-val="SOXL">SOXL</button>
+                        <button type="button" class="radio-btn" data-val="CUSTOM">⚙ 커스텀</button>
+                    </div>
+                    <input type="hidden" id="param-symbol" value="TQQQ">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">분할 수</label>
+                    <div class="radio-group" id="split-group">
+                        <button type="button" class="radio-btn" data-val="20">20분할</button>
+                        <button type="button" class="radio-btn active" data-val="30">30분할</button>
+                        <button type="button" class="radio-btn" data-val="40">40분할</button>
+                    </div>
+                    <input type="hidden" id="param-split" value="30">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">적을수록 공격적, 클수록 안정적</p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+                        <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin: 0;">목표 수익률 (%)</label>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">기본 15% (라오어 원칙)</span>
+                    </div>
+                    <input type="number" id="param-target-profit" value="15" class="input-light" style="font-size: 1.2rem; font-weight: 700; padding: 16px; background: #F3F4F6;" required>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">별%, 지정가매도 가격, 리버스 복귀 조건에 적용됩니다</p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">전체 원금 ($)</label>
+                            <input type="number" id="param-budget" value="20000" class="input-light" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">초기 상방 LOC %</label>
+                            <select id="param-initial-loc-pct" class="input-light">
+                                <option value="0.10">+10%</option>
+                                <option value="0.15" selected>+15% (기본)</option>
+                                <option value="0.18">+18%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px; display: block;">폭락 대비 매수 % (단계별 1주 추가)</label>
+                    <select id="param-sudden-drop" class="input-light">
+                        <option value="0">선택안함</option>
+                        <option value="-1" selected>사용 (영혼법)</option>
+                    </select>
+                </div>
+
+                <input type="hidden" id="param-mode" value="manual">
+                <button type="submit" class="btn btn-primary" style="margin-top: 15px; font-size: 1.1rem; padding: 16px;">시작하기</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- 대시보드 화면 -->
+    <main class="container hidden" id="status-panel">
+        <!-- T-Value 카드 -->
+        <div class="card t-value-card">
+            <div class="t-header">
+                <span class="label">T-VALUE</span>
+                <span class="badge" id="badge-status">처음매수</span>
+            </div>
+            <div class="t-body">
+                <span class="t-current" id="val-t">0</span>
+                <span class="t-total">/ <span id="val-split">40</span></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="t-progress" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- 6타일 그리드 -->
+        <div class="grid-6">
+            <div class="tile">
+                <div class="tile-label">평단가</div>
+                <div class="tile-value" id="val-avg-price">-</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">보유수량</div>
+                <div class="tile-value"><span id="val-qty">0</span>주</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">잔금</div>
+                <div class="tile-value" id="val-cash">-</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">별%</div>
+                <div class="tile-value text-green" id="val-star-pct">+15.00%</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">별지점</div>
+                <div class="tile-value" id="val-star-price">-</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">1회 매수금</div>
+                <div class="tile-value text-blue" id="val-budget">-</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="btn-open-sync" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 12px; border-radius: 6px;">🔄 보유 내역 수동 동기화</button>
+            <button id="btn-force-delete" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border-color: #ef4444; color: #ef4444;">❌ 사이클 삭제</button>
+        </div>
+        
+        <!-- 오늘의 주문 -->
+        <div class="card" style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>오늘의 주문</h3>
+                <span id="today-ref-price" style="font-size: 0.85rem; color: var(--text-muted);">로딩중...</span>
+            </div>
+            
+            <div id="t0-new-cycle-header" class="hidden" style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: 8px; padding: 15px; margin-top: 15px;">
+                <div style="color: #ea580c; font-weight: 600; margin-bottom: 12px; font-size: 0.95rem;">
+                    📌 새 사이클 큰수매수 · 종가 <span id="t0-ref-price">$0.00</span>의 <span id="t0-loc-pct-text">+15%</span> = <span id="t0-loc-price">$0.00</span>
+                </div>
+                <div style="display: flex; gap: 8px;" id="t0-pct-buttons">
+                    <button class="btn btn-outline loc-pct-btn" data-val="0.10" style="padding: 6px 12px; font-size: 0.85rem; border-color: #ea580c; color: #ea580c; border-radius: 20px;">+10%</button>
+                    <button class="btn btn-outline loc-pct-btn active" data-val="0.15" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">+15%</button>
+                    <button class="btn btn-outline loc-pct-btn" data-val="0.18" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">+18%</button>
+                </div>
+            </div>
+
+            <div id="orders-list" class="orders-list" style="margin-top: 15px;"></div>
+            
+            <!-- 폭락 대비 버튼 -->
+            <div id="manual-sudden-drop-container" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">폭락 대비 매수</span>
+                <div style="display: flex; gap: 6px;" id="manual-sd-buttons">
+                    <button class="btn btn-outline sd-pct-btn" data-val="0" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 15px;">해제</button>
+                    <button class="btn btn-outline sd-pct-btn" data-val="-1" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 15px;">사용 (영혼법)</button>
+                </div>
+            </div>
+            <!-- KIS 주문 전송 버튼 -->
+            <div style="margin-top: 20px; text-align: center;">
+                <button id="btn-submit-kis" class="btn btn-primary" style="width: 100%; max-width: 300px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    HTS 주문 일괄 전송 (실전투자)
+                    <div id="kis-submit-loading" class="hidden spinner" style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;"></div>
+                </button>
+            </div>
+            
+            <!-- 사이클 삭제 버튼 -->
+            <div style="margin-top: 15px; text-align: center;">
+                <button id="btn-delete-cycle" class="btn btn-outline" style="width: 100%; max-width: 300px; border-color: #ef4444; color: #ef4444; font-size: 0.85rem;">
+                    ⚠️ 이 사이클 강제 종료 및 삭제
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 분석 화면 (계산기 표) -->
+    <main class="container hidden" id="analysis-panel">
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">회차별 매수/매도 퍼센트 표</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+                T값에 따른 별% (매도가) 및 별지점 매수가를 미리 확인하세요. 음영 부분은 후반전입니다.
+            </p>
+            <div class="table-container" style="overflow-x: auto;">
+                <table id="calc-table" style="width: 100%; border-collapse: collapse; text-align: center;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 10px;">T (회차)</th>
+                            <th style="padding: 10px;">별% (매도가)</th>
+                            <th style="padding: 10px;">별지점 매수가</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calc-table-body">
+                        <!-- JS에서 동적 생성 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 가이드 화면 -->
+    <main class="container hidden" id="guide-panel">
+        <div class="card" style="line-height: 1.6;">
+            <h2 style="margin-bottom: 15px; color: var(--primary);">무한매수법 V4.0 핵심 가이드</h2>
+            
+            <h3 style="margin-top: 20px; color: var(--text-main);">1. 공통 원칙</h3>
+            <ul style="margin-left: 20px; color: var(--text-muted); font-size: 0.9rem;">
+                <li>종목은 <strong>TQQQ / SOXL</strong> 한정. 타 종목은 오피셜이 아닙니다.</li>
+                <li>모든 주문은 <strong>LOC (Limit on Close)</strong> 기반으로, 프리장 시작 직후에 주문을 걸어둡니다. (주간장 이용 금지)</li>
+                <li>여러 종목 / 분할 방식 병행 시 원금은 철저히 독립적으로 설정해야 합니다.</li>
+            </ul>
+
+            <h3 style="margin-top: 20px; color: var(--text-main);">2. 주요 용어</h3>
+            <ul style="margin-left: 20px; color: var(--text-muted); font-size: 0.9rem;">
+                <li><strong>T (Turn, 회차)</strong>: 진행 경과를 나타내는 값입니다. 1회 매수 시 +1, 절반 매수 시 +0.5 가산됩니다.</li>
+                <li><strong>별지점 / 별% (☆%)</strong>: 매수와 매도를 가르는 기준 퍼센트 (평단 대비) 입니다. TQQQ 40분할 기준 <code>(15 - 0.75T)%</code> 공식이 적용됩니다.</li>
+                <li><strong>LOC 매수/매도</strong>: Limit on Close. 종가가 기준 이하(매수) 또는 이상(매도)일 때만 종가로 체결되는 주문 방식입니다.</li>
+                <li><strong>쿼터매수</strong>: 리버스 모드에서 방어적으로 평단을 낮추는 행위입니다.</li>
+            </ul>
+
+            <h3 style="margin-top: 20px; color: var(--text-main);">3. 리버스 모드 (V4.0)</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">
+                원금이 모두 소진되었을 때 자동으로 돌입하는 방어 모드입니다. 전체 수량의 1/20(또는 1/10)을 무조건 매도(MOC)하고, 매도된 금액으로 다시 쿼터매수하여 평단을 공격적으로 낮춥니다. 평단 대비 손실률이 -15%(TQQQ) 위로 올라오면 다시 일반 모드로 복귀합니다.
+            </p>
+        </div>
+    </main>
+
+    <!-- 플로팅 버튼 -->
+    <button class="floating-btn hidden" id="record-btn">
+        <span>+ 오늘 기록하기</span>
+    </button>
+
+    <!-- 바텀 시트 모달 -->
+    <div class="modal-overlay hidden" id="record-modal">
+        <div class="bottom-sheet">
+            <div class="sheet-header">
+                <h3>오늘의 거래 기록</h3>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="sheet-body" id="modal-body-content">
+                <div style="margin-bottom: 20px;">
+                    <button type="button" id="btn-auto-sync" style="width: 100%; padding: 12px; background: #EEF2FF; color: var(--primary); border: 1px solid #C7D2FE; border-radius: var(--radius); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span>🔄 KIS 실제 계좌 체결내역 동기화 (Auto Sync)</span>
+                    </button>
+                    <div id="auto-sync-loading" class="hidden" style="text-align: center; font-size: 0.85rem; color: var(--primary); margin-top: 10px;">
+                        한국투자증권 API에서 데이터를 불러오는 중...
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; justify-content: center; margin: 10px 0 20px 0;">
+                    <div style="height: 1px; background: var(--border-color); flex: 1;"></div>
+                    <span style="padding: 0 10px; font-size: 0.85rem; color: var(--text-muted);">또는 수동 기록</span>
+                    <div style="height: 1px; background: var(--border-color); flex: 1;"></div>
+                </div>
+
+                <div class="action-grid" id="normal-actions">
+                    <h4>매수</h4>
+                    <button class="action-btn" data-action="full_buy">
+                        <span>1회 매수</span> <span class="action-badge">T + 1</span>
+                    </button>
+                    <button class="action-btn" data-action="half_buy">
+                        <span>절반 매수</span> <span class="action-badge">T + 0.5</span>
+                    </button>
+                    
+                    <h4 style="margin-top: 20px;">매도</h4>
+                    <button class="action-btn sell" data-action="quarter_sell">
+                        <span>쿼터 매도 (1/4)</span> <span class="action-badge">T × 0.75</span>
+                    </button>
+                    <button class="action-btn sell" data-action="take_profit">
+                        <span id="take-profit-text">지정가 익절 (전량)</span> <span class="action-badge">리셋</span>
+                    </button>
+                </div>
+                
+                <div class="action-section hidden" id="reverse-actions">
+                    <h4 class="text-red">리버스 모드 (원금 소진)</h4>
+                    <button class="action-btn sell" data-action="reverse_sell">
+                        <span>무한 매도</span> <span class="action-badge">T × 0.9</span>
+                    </button>
+                    <button class="action-btn" data-action="reverse_buy">
+                        <span>쿼터 매수 (잔금/4)</span> <span class="action-badge">T + α</span>
+                    </button>
+                </div>
+
+                <!-- 체결가 입력 폼 -->
+                <div id="fill-details" class="hidden" style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label>체결가 ($)</label>
+                        <input type="number" step="0.01" id="action-price" class="input-light" placeholder="실제 체결가를 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <label>체결 수량</label>
+                        <input type="number" id="action-qty" class="input-light" placeholder="체결된 수량을 입력하세요">
+                    </div>
+                    <button id="confirm-action-btn" class="btn btn-primary" style="margin-top: 10px;">기록 완료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div> <!-- end app-wrapper -->
+
+    <script src="/static/app.js?v=6"></script>
+</body>
+</html>
