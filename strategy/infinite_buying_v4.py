@@ -1,5 +1,5 @@
 import math
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 from datetime import date
 from typing import List
 
@@ -13,29 +13,22 @@ class InfiniteBuyingV4Strategy:
     def calculate_daily_indicators(self, state: CycleState):
         """매일 바뀌는 1회매수금, 별%, 별지점을 계산하여 상태에 캐싱"""
         splits = state.params.split_count
+        # 0. T값 동적 수학적 계산
+        D = state.params.total_budget / Decimal(str(splits))
+        total_invested = state.position.quantity * state.position.avg_price
+        if D > 0:
+            state.T = float(total_invested / D)
         T = state.T
         
         # 1. 1회 매수금 (변동형)
-        if splits - T > 0:
-            state.current_one_lot_budget = state.cash_remaining / Decimal(str(splits - T))
+        if float(splits) - T > 0:
+            state.current_one_lot_budget = state.cash_remaining / Decimal(str(float(splits) - T))
         else:
             state.current_one_lot_budget = Decimal('0')
             
-        # 2. 별% 계산 (TQQQ vs SOXL)
-        symbol = state.params.symbol.upper()
-        
-        if symbol == "SOXL":
-            tp_base = Decimal('0.20')
-            if splits == 40:
-                state.current_star_pct = tp_base - (Decimal('0.01') * Decimal(str(T)))
-            else: # 20분할
-                state.current_star_pct = tp_base - (Decimal('0.02') * Decimal(str(T)))
-        else: # Default TQQQ
-            tp_base = Decimal('0.15')
-            if splits == 40:
-                state.current_star_pct = tp_base - (Decimal('0.0075') * Decimal(str(T)))
-            else: # 20분할
-                state.current_star_pct = tp_base - (Decimal('0.015') * Decimal(str(T)))
+        # 2. 별% 계산 (파라미터화된 alpha, beta 적용)
+        # alpha가 0.10 (10%)이고 beta가 2.0일 때, 10 - T/2(%)를 표현하기 위해 100으로 나눔
+        state.current_star_pct = float(state.params.star_alpha) - (T / (float(state.params.star_beta) * 100))
             
         # 3. 별지점 계산
         if state.reverse_mode:
@@ -45,7 +38,7 @@ class InfiniteBuyingV4Strategy:
         else:
             raw_star = Decimal('0')
             
-        state.current_star_price = raw_star.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        state.current_star_price = raw_star.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
 
     def build_buy_orders(self, state: CycleState, current_price: Decimal) -> List[OrderIntent]:
         if state.status != CycleStatus.RUNNING and state.status != CycleStatus.REVERSE_MODE:
@@ -112,27 +105,27 @@ class InfiniteBuyingV4Strategy:
                         price=state.current_star_price - Decimal('0.01'), quantity=Decimal(qty), tag="1회 매수 (별지점)"
                     ))
                     
-        # 폭락 대비 다중 매수 (영혼법) - 1회 매수금 / N
-        if state.params.sudden_drop_pct < 0:
-            budget_per_day = state.params.total_budget / Decimal(str(state.params.split_count))
+        # 폭락 대비 다중 매수: 전일종가 / (1.25, 1.50, 1.75, 2.00) × 1주
+        if state.params.sudden_drop_pct < 0 and current_price > 0:
+            crash_levels = [
+                (Decimal('1.25'), '-20%'),
+                (Decimal('1.50'), '-30%'),
+                (Decimal('1.75'), '-40%'),
+                (Decimal('2.00'), '-50%'),
+            ]
+            # sudden_drop_pct에 따라 건수 결정: -20%=1건, -30%=2건, -40%=3건, -50%=4건
+            max_levels = 1
+            if state.params.sudden_drop_pct <= Decimal('-0.30'): max_levels = 2
+            if state.params.sudden_drop_pct <= Decimal('-0.40'): max_levels = 3
+            if state.params.sudden_drop_pct <= Decimal('-0.50'): max_levels = 4
             
-            crash_count = 0
-            for n in range(1, 100):
-                if crash_count >= 6:
-                    break
-                    
-                crash_price = budget_per_day / Decimal(str(n))
-                
-                # 계산된 가격이 전일 종가보다 낮을 때만 유효한 '폭락 대비' 매수임
-                if crash_price < current_price:
-                    drop_pct = ((crash_price - current_price) / current_price) * 100
-                    # 반올림하여 정수 퍼센트로 태그 생성
-                    drop_pct_int = int(round(float(drop_pct)))
-                    orders.append(OrderIntent(
-                        symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LOC,
-                        price=crash_price, quantity=Decimal('1'), tag=f"폭락 대비 매수 ({drop_pct_int}%)"
-                    ))
-                    crash_count += 1
+            for i in range(max_levels):
+                divisor, label = crash_levels[i]
+                crash_price = (current_price / divisor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                orders.append(OrderIntent(
+                    symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LOC,
+                    price=crash_price, quantity=Decimal('1'), tag=f"폭락 대비 ({label})"
+                ))
                     
         return orders
 
@@ -142,6 +135,7 @@ class InfiniteBuyingV4Strategy:
             
         self.calculate_daily_indicators(state)
         orders = []
+        budget = state.current_one_lot_budget
         
         if state.reverse_mode:
             sell_qty = state.reverse_sell_qty_unit
@@ -152,23 +146,38 @@ class InfiniteBuyingV4Strategy:
                 ))
             return orders
             
-        # 쿼터 매도 및 지정가 익절
         total_qty = state.position.quantity
         if total_qty > 0:
-            quarter_qty = Decimal(str(math.floor(total_qty / Decimal('4'))))
-            rest_qty = total_qty - quarter_qty
+            # LOC 매도 수량: 매수와 대칭 (전반전=평단 매수수량, 후반전=별값 매수수량)
+            loc_sell_qty = Decimal('0')
             
-            # 1. 쿼터 매도 (1/4 별지점 LOC)
-            if quarter_qty > 0 and state.current_star_price > 0:
+            if state.T < state.params.split_count / 2:
+                # 전반전: LOC 매도 수량 = 당일 평단 LOC 매수 수량
+                if state.current_star_price > 0 and state.position.avg_price > 0:
+                    half_budget = budget / Decimal('2')
+                    qty_star = Decimal(str(math.floor(half_budget / state.current_star_price)))
+                    total_buyable = Decimal(str(math.floor(budget / state.position.avg_price)))
+                    loc_sell_qty = total_buyable - qty_star
+            else:
+                # 후반전: LOC 매도 수량 = 당일 별값 LOC 매수 수량 (1회 전체)
+                if state.current_star_price > 0:
+                    loc_sell_qty = Decimal(str(math.floor(budget / state.current_star_price)))
+            
+            # 안전장치: 매도 수량이 보유 수량 초과 방지
+            loc_sell_qty = min(loc_sell_qty, total_qty)
+            rest_qty = total_qty - loc_sell_qty
+            
+            # 1. LOC 매도 (별지점)
+            if loc_sell_qty > 0 and state.current_star_price > 0:
                 orders.append(OrderIntent(
                     symbol=state.params.symbol, side=Side.SELL, kind=OrderKind.LOC,
-                    price=state.current_star_price, quantity=quarter_qty, tag="쿼터 매도 (별지점)"
+                    price=state.current_star_price, quantity=loc_sell_qty, tag=f"LOC 매도 (☆{(state.current_star_pct*100):.1f}%)"
                 ))
                 
-            # 2. 지정가 익절 (나머지 3/4)
+            # 2. 지정가 익절 (나머지 전량)
             if rest_qty > 0:
                 tp_target = Decimal('1.20') if state.params.symbol.upper() == "SOXL" else Decimal('1.15')
-                take_profit_price = state.position.avg_price * tp_target
+                take_profit_price = (state.position.avg_price * tp_target).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
                 pct_str = "+20%" if state.params.symbol.upper() == "SOXL" else "+15%"
                 orders.append(OrderIntent(
                     symbol=state.params.symbol, side=Side.SELL, kind=OrderKind.LIMIT,

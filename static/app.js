@@ -310,6 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const price = parseFloat(document.getElementById("action-price").value);
         const qty = parseFloat(document.getElementById("action-qty").value);
+        const tradeDateVal = document.getElementById("manual-record-date").value;
         
         if (!price || isNaN(qty)) {
             alert("가격을 정확히 입력하세요.");
@@ -319,7 +320,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const payload = {
             action: selectedAction,
             price: price,
-            quantity: qty
+            quantity: qty,
+            trade_date: tradeDateVal || null
         };
 
         const res = await fetch(`/api/action?cycle_id=${activeCycleId}`, {
@@ -619,6 +621,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     manualSdContainer.classList.add("hidden");
                 }
 
+                const dateInput = document.getElementById("manual-record-date");
+                if (dateInput && !dateInput.value) {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    dateInput.value = todayStr;
+                }
+                renderHistory(state.fills);
+                try {
+                    const histRes = await fetch(`/api/history-prices/${state.symbol}`);
+                    if (histRes.ok) {
+                        const history = await histRes.json();
+                        renderDateCards(history);
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch history prices:", e);
+                }
                 fetchOrdersToday();
 
             } else {
@@ -699,6 +716,298 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.error(e);
                 }
             }
+        });
+    }
+
+    function renderHistory(fills) {
+        const countEl = document.getElementById("history-count");
+        const listEl = document.getElementById("history-list");
+        
+        if (!countEl || !listEl) return;
+        
+        countEl.textContent = fills ? fills.length : 0;
+        listEl.innerHTML = "";
+        
+        if (!fills || fills.length === 0) {
+            listEl.innerHTML = "<p style='color: var(--text-muted); text-align: center; padding: 15px; font-size: 0.9rem;'>기록된 매매 히스토리가 없습니다.</p>";
+            return;
+        }
+        
+        const reversedFills = [...fills].reverse();
+        const groups = {};
+        reversedFills.forEach(f => {
+            const d = f.trade_date;
+            if (!groups[d]) groups[d] = [];
+            groups[d].push(f);
+        });
+        
+        let html = "";
+        for (let dateStr in groups) {
+            html += `
+                <div class="history-group" style="margin-bottom: 12px;">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 6px;">${dateStr}</div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+            `;
+            for (let f of groups[dateStr]) {
+                let actionText = "";
+                if (f.action === "full_buy") actionText = "1회 매수";
+                else if (f.action === "half_buy") actionText = "절반 매수";
+                else if (f.action === "first_buy") actionText = "첫 진입";
+                else if (f.action === "reverse_buy") actionText = "리버스 매수";
+                else if (f.action === "reverse_sell") actionText = "무한 매도";
+                else if (f.action === "quarter_sell") actionText = "LOC 매도";
+                else if (f.action === "take_profit") actionText = "전량 익절";
+                else actionText = f.side === "BUY" ? "매수" : "매도";
+
+                let sideColor = f.side === "BUY" ? "#ef4444" : "#2563eb";
+                let sideBg = f.side === "BUY" ? "#fef2f2" : "#eff6ff";
+                let totalVal = f.price * f.quantity;
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-body); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 0.9rem;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: ${sideBg}; color: ${sideColor}; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${actionText}</span>
+                            <span style="font-weight: 600; color: var(--text-main);">$${f.price.toFixed(2)} × ${f.quantity}주</span>
+                        </div>
+                        <div style="font-weight: 700; color: var(--text-muted);">$${totalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    </div>
+                `;
+            }
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        listEl.innerHTML = html;
+    }
+
+    const btnDeleteLastHistory = document.getElementById("btn-delete-last-history");
+    if (btnDeleteLastHistory) {
+        btnDeleteLastHistory.addEventListener("click", async () => {
+            if (!confirm("⚠️ 가장 최근에 기록된 매매 날짜의 기록을 정말 삭제하시겠습니까?\n\n삭제 시 이전 상태로 재계산(Replay)됩니다.")) return;
+            
+            try {
+                const res = await fetch(`/api/action/last?cycle_id=${activeCycleId}`, {
+                    method: "DELETE"
+                });
+                if (res.ok) {
+                    showToast("✅ 최근 거래가 성공적으로 삭제되었습니다.", "success");
+                    fetchState();
+                } else {
+                    const err = await res.json();
+                    alert("오류: " + (err.detail || "삭제 실패"));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("네트워크 오류가 발생했습니다.");
+            }
+        });
+    }
+
+    function renderDateCards(history) {
+        const scrollEl = document.getElementById("date-cards-scroll");
+        if (!scrollEl) return;
+        scrollEl.innerHTML = "";
+        
+        if (!history || history.length === 0) {
+            scrollEl.innerHTML = "<p style='color: var(--text-muted); font-size: 0.85rem; padding: 10px;'>최근 종가 정보를 불러올 수 없습니다.</p>";
+            return;
+        }
+        
+        history.forEach((h, i) => {
+            let arrow = "";
+            let arrowColor = "var(--text-muted)";
+            if (i > 0) {
+                const prevClose = history[i-1].close;
+                if (h.close > prevClose) {
+                    arrow = "▲";
+                    arrowColor = "#ef4444"; // red up
+                } else if (h.close < prevClose) {
+                    arrow = "▼";
+                    arrowColor = "#2563eb"; // blue down
+                }
+            }
+            
+            const card = document.createElement("div");
+            card.className = "date-card";
+            card.style.flex = "0 0 95px";
+            card.style.background = "var(--bg-body)";
+            card.style.border = "1px solid var(--border-color)";
+            card.style.borderRadius = "12px";
+            card.style.padding = "10px 8px";
+            card.style.textAlign = "center";
+            card.style.cursor = "pointer";
+            card.style.transition = "all 0.2s";
+            
+            card.innerHTML = `
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">
+                    ${h.date} <span style="color: ${arrowColor}; font-size: 0.75rem;">${arrow}</span>
+                </div>
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">종가</div>
+                <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-main);">$${h.close.toFixed(2)}</div>
+            `;
+            
+            card.addEventListener("click", () => {
+                document.querySelectorAll(".date-card").forEach(c => {
+                    c.style.borderColor = "var(--border-color)";
+                    c.style.background = "var(--bg-body)";
+                    c.style.boxShadow = "none";
+                });
+                card.style.borderColor = "#3b82f6"; // blue border
+                card.style.background = "rgba(59, 130, 246, 0.05)"; // light blue bg
+                card.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+                
+                selectDateCard(h.full_date, h.close);
+            });
+            
+            scrollEl.appendChild(card);
+        });
+    }
+
+    function selectDateCard(dateStr, closePrice) {
+        document.getElementById("selected-plan-date").textContent = dateStr;
+        document.getElementById("selected-plan-close").textContent = `$${closePrice.toFixed(2)}`;
+        document.getElementById("manual-record-date").value = dateStr;
+        
+        const container = document.getElementById("plan-buttons-container");
+        if (!container) return;
+        container.innerHTML = "";
+        
+        const box = document.getElementById("trade-plan-box");
+        if (box) box.classList.remove("hidden");
+        
+        const isTqqq = currentState.symbol === "TQQQ";
+        const flatQty = isTqqq ? 3 : 1;
+        const starQty = 1;
+        
+        let buttons = [];
+        
+        if (currentState.T === 0) {
+            buttons.push({
+                label: `[첫 진입 매수 적용] $${closePrice.toFixed(2)} × 1주 (T+1.0)`,
+                action: "first_buy",
+                price: closePrice,
+                qty: 1,
+                color: "btn-primary"
+            });
+        } else if (currentState.reverse_mode) {
+            const revBuyQty = Math.max(1, Math.floor((currentState.current_one_lot_budget / 4) / closePrice));
+            const revSellQty = currentState.quantity > 0 ? (currentState.reverse_sell_qty_unit || 1) : 1;
+            
+            buttons.push({
+                label: `[리버스 매수 적용] $${closePrice.toFixed(2)} × ${revBuyQty}주`,
+                action: "reverse_buy",
+                price: closePrice,
+                qty: revBuyQty,
+                color: "btn-primary"
+            });
+            
+            if (currentState.quantity > 0) {
+                buttons.push({
+                    label: `[무한 매도 적용] $${closePrice.toFixed(2)} × ${revSellQty}주`,
+                    action: "reverse_sell",
+                    price: closePrice,
+                    qty: revSellQty,
+                    color: "btn-outline"
+                });
+            }
+        } else {
+            const fullQty = flatQty + starQty;
+            
+            buttons.push({
+                label: `[1회 매수 적용] $${closePrice.toFixed(2)} × ${fullQty}주 (T+1.0)`,
+                action: "full_buy",
+                price: closePrice,
+                qty: fullQty,
+                color: "btn-primary"
+            });
+            
+            buttons.push({
+                label: `[절반 매수 적용] $${closePrice.toFixed(2)} × ${flatQty}주 (T+0.5)`,
+                action: "half_buy",
+                price: closePrice,
+                qty: flatQty,
+                color: "btn-primary",
+                style: "background-color: #f97316; border-color: #f97316;"
+            });
+            
+            if (currentState.T >= currentState.split_count / 2 && currentState.quantity > 0) {
+                const locSellQty = isTqqq ? 3 : 1;
+                const quarterSellQty = Math.max(1, Math.floor(currentState.quantity * 0.25));
+                
+                buttons.push({
+                    label: `[무한 매도 적용] $${closePrice.toFixed(2)} × ${locSellQty}주 (후반전 LOC 매도)`,
+                    action: "reverse_sell",
+                    price: closePrice,
+                    qty: locSellQty,
+                    color: "btn-outline"
+                });
+                
+                buttons.push({
+                    label: `[LOC 매도 적용] $${closePrice.toFixed(2)} × ${quarterSellQty}주 (별지점 LOC 매도)`,
+                    action: "quarter_sell",
+                    price: closePrice,
+                    qty: quarterSellQty,
+                    color: "btn-outline"
+                });
+            }
+        }
+        
+        if (currentState.quantity > 0) {
+            const tpPct = currentState.symbol === "SOXL" ? 1.20 : 1.15;
+            const tpPrice = currentState.avg_price * tpPct;
+            buttons.push({
+                label: `[전량 익절 적용] $${tpPrice.toFixed(2)} × ${currentState.quantity}주 (T=0)`,
+                action: "take_profit",
+                price: tpPrice,
+                qty: currentState.quantity,
+                color: "btn-outline",
+                style: "border-color: #10b981; color: #10b981;"
+            });
+        }
+        
+        buttons.forEach(b => {
+            const btn = document.createElement("button");
+            btn.className = `btn ${b.color}`;
+            btn.style.width = "100%";
+            btn.style.padding = "10px";
+            btn.style.fontSize = "0.9rem";
+            btn.style.fontWeight = "600";
+            btn.style.justifyContent = "center";
+            if (b.style) {
+                btn.setAttribute("style", btn.getAttribute("style") + "; " + b.style);
+            }
+            btn.textContent = b.label;
+            
+            btn.addEventListener("click", async () => {
+                if (!confirm(`'${b.label}' 매매를 기록하시겠습니까?`)) return;
+                
+                try {
+                    const res = await fetch(`/api/action?cycle_id=${activeCycleId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            action: b.action,
+                            price: b.price,
+                            quantity: b.qty,
+                            trade_date: dateStr
+                        })
+                    });
+                    if (res.ok) {
+                        showToast("✅ 성공적으로 기록되었습니다.", "success");
+                        box.classList.add("hidden");
+                        fetchState();
+                    } else {
+                        const err = await res.json();
+                        alert("오류: " + (err.detail || "기록 실패"));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("네트워크 오류가 발생했습니다.");
+                }
+            });
+            
+            container.appendChild(btn);
         });
     }
 });

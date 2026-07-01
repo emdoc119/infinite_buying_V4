@@ -43,13 +43,14 @@ class StartCycleRequest(BaseModel):
     split_count: int = 40
     commission_rate: float = 0.0
     initial_loc_pct: float = 0.15
-    sudden_drop_pct: float = -0.10
+    sudden_drop_pct: float = -0.50
     is_auto_mode: bool = False
 
 class ActionRequest(BaseModel):
     action: str
     price: float
     quantity: float
+    trade_date: Optional[str] = None
 
 @app.get("/api/cycles")
 def get_all_cycles():
@@ -156,7 +157,8 @@ def get_cycle_state(cycle_id: str = Query(...)):
         "current_one_lot_budget": float(current_cycle.current_one_lot_budget),
         "initial_loc_pct": float(current_cycle.params.initial_loc_pct),
         "sudden_drop_pct": float(current_cycle.params.sudden_drop_pct),
-        "is_auto_mode": current_cycle.params.is_auto_mode
+        "is_auto_mode": current_cycle.params.is_auto_mode,
+        "fills": [{"side": f.side.value, "price": float(f.price), "quantity": float(f.quantity), "trade_date": f.trade_date.strftime("%Y-%m-%d"), "action": f.action} for f in current_cycle.fills]
     }
 
 @app.get("/api/price/{ticker}")
@@ -236,23 +238,89 @@ def get_orders_today(cycle_id: str = Query(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/history-prices/{ticker}")
+def get_history_prices(ticker: str):
+    try:
+        t = yf.Ticker(ticker)
+        hist = t.history(period="15d")
+        hist = hist.dropna(subset=['Close'])
+        if hist.empty:
+            return []
+        
+        prices = []
+        for d, row in hist.iterrows():
+            date_str = d.strftime("%m-%d")
+            full_date_str = d.strftime("%Y-%m-%d")
+            prices.append({
+                "date": date_str,
+                "full_date": full_date_str,
+                "close": float(row['Close'])
+            })
+        return prices[-10:]  # Return last 10 trading days
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def replay_cycle(cycle: CycleState) -> CycleState:
+    params = cycle.params
+    new_state = CycleState(params=params)
+    
+    # Replay each fill in cycle.fills
+    fills_to_replay = list(cycle.fills)
+    new_state.fills = [] # Clear it so process_action can append it
+    
+    for fill in fills_to_replay:
+        new_state = machine.process_action(
+            new_state,
+            action=fill.action,
+            price=fill.price,
+            quantity=fill.quantity,
+            trade_date=fill.trade_date,
+            update_fills=True
+        )
+    return new_state
+
 @app.post("/api/action")
 def apply_action(req: ActionRequest, cycle_id: str = Query(...)):
     current_cycle = cycles.get(cycle_id)
     if not current_cycle:
         raise HTTPException(status_code=400, detail="No active cycle")
         
+    t_date = None
+    if req.trade_date:
+        from datetime import datetime
+        try:
+            t_date = datetime.strptime(req.trade_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format, use YYYY-MM-DD")
+            
     updated_cycle = machine.process_action(
         current_cycle, 
         req.action, 
         Decimal(str(req.price)), 
-        Decimal(str(req.quantity))
+        Decimal(str(req.quantity)),
+        trade_date=t_date
     )
     
     if updated_cycle.status == CycleStatus.WAITING_RESET:
         params = updated_cycle.params
         updated_cycle = CycleState(params=params)
         
+    cycles[cycle_id] = updated_cycle
+    save_cycles(cycles)
+    return get_cycle_state(cycle_id)
+
+@app.delete("/api/action/last")
+def delete_last_action(cycle_id: str = Query(...)):
+    current_cycle = cycles.get(cycle_id)
+    if not current_cycle:
+        raise HTTPException(status_code=400, detail="No active cycle")
+    if not current_cycle.fills:
+        raise HTTPException(status_code=400, detail="삭제할 거래 기록이 없습니다.")
+    
+    current_cycle.fills.pop()
+    
+    updated_cycle = replay_cycle(current_cycle)
+    strategy.calculate_daily_indicators(updated_cycle)
     cycles[cycle_id] = updated_cycle
     save_cycles(cycles)
     return get_cycle_state(cycle_id)
@@ -345,8 +413,10 @@ def submit_to_broker(cycle_id: str = Query(...)):
 
 from datetime import date
 
+from services.audit_agent import audit_agent
+
 @app.post("/api/action/auto_sync")
-def auto_sync_kis(cycle_id: str = Query(...)):
+async def auto_sync_kis(cycle_id: str = Query(...)):
     current_cycle = cycles.get(cycle_id)
     if not current_cycle:
         raise HTTPException(status_code=400, detail="No active cycle")
@@ -355,36 +425,33 @@ def auto_sync_kis(cycle_id: str = Query(...)):
         paper_trading = os.getenv("KIS_PAPER_TRADING", "True").lower() == "true"
         adapter = KISBrokerAdapter(paper_trading=paper_trading)
         
-        # 최근 4일간의 체결 내역 조회 (주말 미국장 및 휴일 체결 누락 방지)
-        today = date.today()
-        start_date = today - timedelta(days=4)
-        fills = adapter.get_fills(current_cycle.params.symbol.value, start_date, today)
+        from datetime import timezone
+        kst = timezone(timedelta(hours=9))
+        today = datetime.now(kst).date()
+        past_7_days = today - timedelta(days=7)
+        fills = adapter.get_fills(current_cycle.params.symbol.value, past_7_days, today)
         
         messages = []
         
-        # 1. T (회차) 이벤트 기반 누적 계산
-        daily_buy_values = {}
+        # 1. 신규 체결 내역 업데이트
+        new_fills = []
         if fills:
             for fill in fills:
-                # 중복 처리 방지 (고유 주문번호 사용)
-                if fill.side == Side.BUY and fill.order_id and fill.order_id not in current_cycle.processed_order_ids:
+                if fill.order_id and fill.order_id not in current_cycle.processed_order_ids:
                     current_cycle.processed_order_ids.append(fill.order_id)
+                    current_cycle.fills.append(fill)
+                    new_fills.append(fill)
                     date_str = fill.trade_date.strftime("%Y-%m-%d")
-                    daily_buy_values[date_str] = daily_buy_values.get(date_str, Decimal('0')) + (fill.price * fill.quantity)
-                    
-        # 날짜별로 매수 금액을 분석하여 T값 증가
-        if daily_buy_values:
-            budget_per_day = current_cycle.params.total_budget / Decimal(str(current_cycle.params.split_count))
-            for date_str, buy_val in daily_buy_values.items():
-                if buy_val >= budget_per_day * Decimal('0.7'):
-                    current_cycle.T += 1.0
-                    messages.append(f"[{date_str}] 1회 매수 판정 (T+1.0)")
-                elif buy_val > 0:
-                    current_cycle.T += 0.5
-                    messages.append(f"[{date_str}] 절반 매수 판정 (T+0.5)")
+                    messages.append(f"[{date_str}] {fill.side.value} {fill.quantity}주 체결 반영")
 
-        # 2. 잔고 동기화 (Truth of State) - 수량/평단가 강제 덮어쓰기
+        # 2. 잔고 조회 및 Audit
         balance = adapter.get_balance(current_cycle.params.symbol.value)
+        
+        is_safe = await audit_agent.run_daily_audit(cycle_id, current_cycle, new_fills, balance)
+        if not is_safe:
+            return {"message": "Audit 불일치: 덮어쓰기 중단 및 텔레그램 알림 발송"}
+
+        # 3. 잔고 동기화 (Truth of State)
         if balance and balance["quantity"] > 0:
             current_cycle.position.quantity = balance["quantity"]
             current_cycle.position.avg_price = balance["avg_price"]
@@ -393,16 +460,18 @@ def auto_sync_kis(cycle_id: str = Query(...)):
             total_invested = balance["quantity"] * balance["avg_price"]
             current_cycle.cash_remaining = current_cycle.params.total_budget - total_invested
             
+            # 전략 지표 및 T값 재계산
+            strategy.calculate_daily_indicators(current_cycle)
+            
             # 상태 재평가 (T가 절반 이상 넘어가면 리버스 모드)
-            if current_cycle.T >= float(current_cycle.params.split_count) / 2:
+            if current_cycle.T > float(current_cycle.params.split_count) - 1:
                 current_cycle.reverse_mode = True
                 current_cycle.status = CycleStatus.REVERSE_MODE
             else:
                 current_cycle.reverse_mode = False
                 current_cycle.status = CycleStatus.RUNNING
                 
-            strategy.calculate_daily_indicators(current_cycle)
-            messages.append(f"잔고 동기화: {balance['quantity']}주 (평단 ${balance['avg_price']}, 진행률 T={current_cycle.T})")
+            messages.append(f"잔고 동기화: {balance['quantity']}주 (평단 ${balance['avg_price']}, 진행률 T={current_cycle.T:.2f})")
         elif balance and balance["quantity"] == 0:
             messages.append("잔고 0주 확인됨 (사이클 초기화 필요 시 수동 진행)")
         else:
@@ -469,8 +538,8 @@ def auto_fill_action(symbol: str = Query("TQQQ")):
                 elif "절반 매수" in order.tag: action_str = "half_buy"
                 elif "쿼터 매수" in order.tag: action_str = "reverse_buy"
                 elif "무한 매도" in order.tag: action_str = "reverse_sell"
-                elif "쿼터 매도" in order.tag: action_str = "quarter_sell"
-                elif "전량 익절" in order.tag: action_str = "take_profit"
+                elif "LOC 매도" in order.tag: action_str = "quarter_sell"
+                elif "익절" in order.tag: action_str = "take_profit"
 
                 if action_str:
                     current_cycle = machine.process_action(current_cycle, action_str, fill_price, order.quantity)

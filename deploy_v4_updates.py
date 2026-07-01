@@ -17,6 +17,8 @@ files_to_upload = [
     "services/persistence.py",
     "services/scheduler.py",
     "services/notifier.py",
+    "strategy/infinite_buying_v4.py",
+    "strategy/state_machine.py",
     "app.py",
     "static/index.html",
     "static/app.js"

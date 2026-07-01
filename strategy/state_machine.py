@@ -1,4 +1,6 @@
 from decimal import Decimal
+from typing import Optional
+from datetime import date
 from domain.models import CycleState, CycleStatus
 
 class CycleStateMachine:
@@ -7,9 +9,22 @@ class CycleStateMachine:
     UI에서 버튼(1회 매수, 절반 매수, 쿼터 매도 등)을 클릭했을 때 상태를 변경합니다.
     """
     
-    def process_action(self, state: CycleState, action: str, price: Decimal, quantity: Decimal) -> CycleState:
+    def process_action(self, state: CycleState, action: str, price: Decimal, quantity: Decimal, trade_date: Optional[date] = None, update_fills: bool = True) -> CycleState:
+        from domain.models import Side, FillEvent
         if state.status != CycleStatus.RUNNING and state.status != CycleStatus.REVERSE_MODE:
             return state
+
+        if update_fills:
+            side = Side.BUY if action in ["full_buy", "half_buy", "first_buy", "reverse_buy"] else Side.SELL
+            fill_evt = FillEvent(
+                symbol=state.params.symbol.value,
+                side=side,
+                price=price,
+                quantity=quantity,
+                trade_date=trade_date or date.today(),
+                action=action
+            )
+            state.fills.append(fill_evt)
 
         def add_position(p: Decimal, q: Decimal):
             total_value = state.position.value + (p * q)
@@ -33,7 +48,10 @@ class CycleStateMachine:
             state.cash_remaining = state.params.total_budget - notional
             
             base_budget = state.params.total_budget / Decimal(str(state.params.split_count))
-            state.T = float(notional / base_budget)
+            if action == "half_buy":
+                state.T = 0.5
+            else:
+                state.T = 1.0
             return state
 
         # 일반 모드 액션
@@ -76,9 +94,8 @@ class CycleStateMachine:
                 else:
                     state.T += (40 - state.T) * 0.25
                     
-            # 일반 모드 복귀 체크
-            threshold = Decimal('-0.15') if state.params.symbol == "TQQQ" else Decimal('-0.20')
-            if price > state.position.avg_price * (Decimal('1') + threshold):
+            # 일반 모드 복귀 체크 (평단가 이상 회복 시)
+            if price > state.position.avg_price:
                 state.reverse_mode = False
                 state.status = CycleStatus.RUNNING
                 

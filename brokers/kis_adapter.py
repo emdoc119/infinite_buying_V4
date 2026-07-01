@@ -1,7 +1,7 @@
 import os
 import requests
 import time
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional, Dict
 from decimal import Decimal
 
@@ -181,13 +181,19 @@ class KISBrokerAdapter(BrokerAdapter):
                             price = Decimal(item.get("ft_ccld_unpr3", "0") or "0")
                             side_code = item.get("sll_buy_dvsn_cd", "02")
                             side = Side.BUY if side_code == "02" else Side.SELL
+                            ord_dt_str = item.get("ord_dt", end_date.strftime("%Y%m%d"))
+                            try:
+                                actual_trade_date = datetime.strptime(ord_dt_str, "%Y%m%d").date()
+                            except ValueError:
+                                actual_trade_date = end_date
+
                             odno = item.get("odno", "")
                             fills.append(FillEvent(
                                 symbol=symbol,
                                 side=side,
                                 price=price,
                                 quantity=qty,
-                                trade_date=end_date,
+                                trade_date=actual_trade_date,
                                 order_id=odno
                             ))
         except Exception as e:
