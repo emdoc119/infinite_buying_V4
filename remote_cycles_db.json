@@ -1,0 +1,56 @@
+{
+  "86d3f269": {
+    "params": {
+      "cycle_id": "86d3f269",
+      "name": "soxl 1",
+      "symbol": "SOXL",
+      "total_budget": "10000.0",
+      "split_count": 30,
+      "commission_rate": "0.0",
+      "initial_loc_pct": "0.15",
+      "sudden_drop_pct": "-0.4",
+      "is_auto_mode": false
+    },
+    "status": "RUNNING",
+    "T": 0.0,
+    "processed_order_ids": [],
+    "cash_remaining": "10000.0",
+    "position": {
+      "quantity": "0",
+      "avg_price": "0"
+    },
+    "current_star_pct": 0.2,
+    "current_star_price": "0.00",
+    "current_one_lot_budget": "333.3333333333333333333333333",
+    "reverse_mode": false,
+    "reverse_sell_qty_unit": "0",
+    "current_5d_avg": "245.99400024414064"
+  },
+  "51c76b10": {
+    "params": {
+      "cycle_id": "51c76b10",
+      "name": "tqqq 1차",
+      "symbol": "TQQQ",
+      "total_budget": "10000.0",
+      "split_count": 30,
+      "commission_rate": "0.0",
+      "initial_loc_pct": "0.15",
+      "sudden_drop_pct": "-0.3",
+      "is_auto_mode": false
+    },
+    "status": "RUNNING",
+    "T": 4.0,
+    "processed_order_ids": [],
+    "cash_remaining": "8811.4405",
+    "position": {
+      "quantity": "15",
+      "avg_price": "79.2373"
+    },
+    "current_star_pct": 0.11,
+    "current_star_price": "87.95",
+    "current_one_lot_budget": "338.9015576923076923076923077",
+    "reverse_mode": false,
+    "reverse_sell_qty_unit": "0",
+    "current_5d_avg": "75.42000122070313"
+  }
+}

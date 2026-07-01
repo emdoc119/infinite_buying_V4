@@ -553,17 +553,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 statusPanel.classList.remove("hidden");
                 document.getElementById("record-btn").classList.remove("hidden");
 
-                document.getElementById("avg-price").textContent = "$" + state.position.avg_price.toFixed(2);
-                document.getElementById("t-value").textContent = state.T.toFixed(2);
-                document.getElementById("total-budget").textContent = "$" + state.params.total_budget.toFixed(2);
-                
-                // 수동 제어 필드 초기화
-                document.getElementById("override-t").value = state.T.toFixed(2);
-                document.getElementById("override-crash").value = state.params.crash_prep_enabled ? "true" : "false";
-
-                // 전략 지표
-                document.getElementById("star-pct").textContent = (state.current_star_pct * 100).toFixed(1) + "%"; 
-                
                 let displayName = currentState.name ? `[${currentState.name}] ${currentState.symbol}` : currentState.symbol;
                 document.getElementById("head-symbol").textContent = displayName;
                 document.getElementById("head-split").textContent = `${currentState.split_count}분할`;
@@ -1021,54 +1010,4 @@ document.addEventListener("DOMContentLoaded", () => {
             container.appendChild(btn);
         });
     }
-
-    // --- 수동 오버라이드 (Manual Override) 로직 ---
-    document.getElementById("btn-update-t").addEventListener("click", async () => {
-        if (!activeCycleId) return;
-        const newT = parseFloat(document.getElementById("override-t").value);
-        if (isNaN(newT) || newT < 0) {
-            alert("유효한 T값을 입력하세요.");
-            return;
-        }
-        
-        try {
-            const res = await fetch(`/api/manual_override?cycle_id=${activeCycleId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ T: newT })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast(data.message, "success");
-                fetchState();
-            } else {
-                alert("오류: " + data.detail);
-            }
-        } catch (e) {
-            alert("네트워크 오류");
-        }
-    });
-
-    document.getElementById("btn-update-crash").addEventListener("click", async () => {
-        if (!activeCycleId) return;
-        const crashEnabled = document.getElementById("override-crash").value === "true";
-        
-        try {
-            const res = await fetch(`/api/manual_override?cycle_id=${activeCycleId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ crash_prep_enabled: crashEnabled })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast(data.message, "success");
-                fetchState();
-            } else {
-                alert("오류: " + data.detail);
-            }
-        } catch (e) {
-            alert("네트워크 오류");
-        }
-    });
-
 });
