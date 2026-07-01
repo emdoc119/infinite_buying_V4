@@ -175,6 +175,7 @@ class KISBrokerAdapter(BrokerAdapter):
                 data = res.json()
                 if data.get("rt_cd") == "0":
                     output = data.get("output", [])
+                    agg_fills = {}
                     for item in output:
                         qty = Decimal(item.get("ccld_qty", "0") or "0")
                         if qty > 0:
@@ -188,14 +189,31 @@ class KISBrokerAdapter(BrokerAdapter):
                                 actual_trade_date = end_date
 
                             odno = item.get("odno", "")
-                            fills.append(FillEvent(
-                                symbol=symbol,
-                                side=side,
-                                price=price,
-                                quantity=qty,
-                                trade_date=actual_trade_date,
-                                order_id=odno
-                            ))
+                            if not odno:
+                                continue
+                            
+                            if odno not in agg_fills:
+                                agg_fills[odno] = {
+                                    "symbol": symbol,
+                                    "side": side,
+                                    "total_qty": Decimal('0'),
+                                    "total_val": Decimal('0'),
+                                    "trade_date": actual_trade_date,
+                                    "order_id": odno
+                                }
+                            agg_fills[odno]["total_qty"] += qty
+                            agg_fills[odno]["total_val"] += qty * price
+                    
+                    for odno, val in agg_fills.items():
+                        avg_price = val["total_val"] / val["total_qty"] if val["total_qty"] > 0 else Decimal('0')
+                        fills.append(FillEvent(
+                            symbol=val["symbol"],
+                            side=val["side"],
+                            price=avg_price,
+                            quantity=val["total_qty"],
+                            trade_date=val["trade_date"],
+                            order_id=val["order_id"]
+                        ))
         except Exception as e:
             print(f"KIS get_fills error: {e}")
             

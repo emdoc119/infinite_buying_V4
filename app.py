@@ -433,16 +433,34 @@ async def auto_sync_kis(cycle_id: str = Query(...)):
         
         messages = []
         
-        # 1. 신규 체결 내역 업데이트
+        # 1. 신규 체결 내역 업데이트 및 상태 머신 반영
         new_fills = []
         if fills:
+            # 시간순 정렬
+            fills = sorted(fills, key=lambda x: x.trade_date)
             for fill in fills:
                 if fill.order_id and fill.order_id not in current_cycle.processed_order_ids:
+                    # KIS 체결 건에 해당하는 액션 판별 (full_buy, half_buy 등)
+                    action_str = machine.determine_fill_action(current_cycle, fill)
+                    fill.action = action_str
+                    
+                    # 체결 내역 기록
                     current_cycle.processed_order_ids.append(fill.order_id)
                     current_cycle.fills.append(fill)
                     new_fills.append(fill)
+                    
+                    # 상태 머신을 거쳐 T값 및 포지션 1차 반영 (update_fills=False)
+                    current_cycle = machine.process_action(
+                        current_cycle,
+                        action=action_str,
+                        price=fill.price,
+                        quantity=fill.quantity,
+                        trade_date=fill.trade_date,
+                        update_fills=False
+                    )
+                    
                     date_str = fill.trade_date.strftime("%Y-%m-%d")
-                    messages.append(f"[{date_str}] {fill.side.value} {fill.quantity}주 체결 반영")
+                    messages.append(f"[{date_str}] {action_str} {fill.quantity}주 체결 반영 (T={current_cycle.T:.2f})")
 
         # 2. 잔고 조회 및 Audit
         balance = adapter.get_balance(current_cycle.params.symbol.value)
@@ -460,10 +478,10 @@ async def auto_sync_kis(cycle_id: str = Query(...)):
             total_invested = balance["quantity"] * balance["avg_price"]
             current_cycle.cash_remaining = current_cycle.params.total_budget - total_invested
             
-            # 전략 지표 및 T값 재계산
+            # 전략 지표 재계산 (T값은 그대로 보존됨)
             strategy.calculate_daily_indicators(current_cycle)
             
-            # 상태 재평가 (T가 절반 이상 넘어가면 리버스 모드)
+            # 상태 재평가 (T가 전체 분할수 - 1을 넘어가면 리버스 모드)
             if current_cycle.T > float(current_cycle.params.split_count) - 1:
                 current_cycle.reverse_mode = True
                 current_cycle.status = CycleStatus.REVERSE_MODE

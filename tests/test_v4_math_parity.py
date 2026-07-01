@@ -33,9 +33,9 @@ def test_t_value_and_star_calculation(base_state):
     assert math.isclose(base_state.T, 10.67, abs_tol=0.001)
     
     # 2. 별값 검증
-    # 10.67 T값일 때 목표 수익률: 10 - 10.67/2 = 4.665%
-    # 코드는 비율값으로 나오므로 0.04665여야 함
-    assert math.isclose(base_state.current_star_pct, 0.04665, abs_tol=0.0001)
+    # TQQQ 40분할 기준 공식: 15% - (15/20)*T = 15 - 0.75*10.67 = 6.9975%
+    # 코드는 비율값으로 나오므로 0.069975여야 함
+    assert math.isclose(base_state.current_star_pct, 0.069975, abs_tol=0.0001)
 
 def test_order_build_logic(base_state):
     strategy = InfiniteBuyingV4Strategy()

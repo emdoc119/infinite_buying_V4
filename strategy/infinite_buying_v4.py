@@ -13,11 +13,13 @@ class InfiniteBuyingV4Strategy:
     def calculate_daily_indicators(self, state: CycleState):
         """매일 바뀌는 1회매수금, 별%, 별지점을 계산하여 상태에 캐싱"""
         splits = state.params.split_count
-        # 0. T값 동적 수학적 계산
-        D = state.params.total_budget / Decimal(str(splits))
-        total_invested = state.position.quantity * state.position.avg_price
-        if D > 0:
-            state.T = float(total_invested / D)
+        # T값은 상태머신(state_machine.py)에서 Action 기반으로 관리하므로 직접 재계산하지 않습니다.
+        # 단, T가 0이고 보유량이 있는 비정상 상황이거나, 초기 동기화 시점에만 보조적으로 추정합니다.
+        if state.T == 0.0 and state.position.quantity > 0:
+            D = state.params.total_budget / Decimal(str(splits))
+            if D > 0:
+                total_invested = state.position.quantity * state.position.avg_price
+                state.T = float(total_invested / D)
         T = state.T
         
         # 1. 1회 매수금 (변동형)
@@ -26,9 +28,20 @@ class InfiniteBuyingV4Strategy:
         else:
             state.current_one_lot_budget = Decimal('0')
             
-        # 2. 별% 계산 (파라미터화된 alpha, beta 적용)
-        # alpha가 0.10 (10%)이고 beta가 2.0일 때, 10 - T/2(%)를 표현하기 위해 100으로 나눔
-        state.current_star_pct = float(state.params.star_alpha) - (T / (float(state.params.star_beta) * 100))
+        # 2. 별% 계산 (V4.0 공식: T가 splits / 2에 가까워질수록 별%가 0%로 선형 감소)
+        star_alpha = state.params.star_alpha
+        # 기본값 0.10(10%)인 경우 종목에 맞춰 TQQQ는 15%, SOXL은 20%로 자동 보정
+        if star_alpha == Decimal('0.10'):
+            if state.params.symbol.value == "SOXL":
+                star_alpha = Decimal('0.20')
+            elif state.params.symbol.value == "TQQQ":
+                star_alpha = Decimal('0.15')
+        
+        half_splits = float(splits) / 2.0
+        if half_splits > 0:
+            state.current_star_pct = float(star_alpha) * (1.0 - T / half_splits)
+        else:
+            state.current_star_pct = float(star_alpha)
             
         # 3. 별지점 계산
         if state.reverse_mode:
