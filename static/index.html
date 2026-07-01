@@ -246,14 +246,40 @@
                 <!-- 동적으로 추가되는 날짜 카드들 -->
             </div>
 
-            <!-- 선택된 날짜의 매매 계획 (원클릭 적용) -->
-            <div id="trade-plan-box" class="hidden" style="background: var(--bg-body); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
-                    <span>📅 <span id="selected-plan-date">YYYY-MM-DD</span> 매매 계획</span>
-                    <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">종가: <strong id="selected-plan-close" style="color: var(--text-main); font-weight: 800;">$0.00</strong></span>
-                </h4>
-                <div id="plan-buttons-container" style="display: flex; flex-direction: column; gap: 8px;">
-                    <!-- 동적으로 생성되는 적용 버튼들 -->
+            <!-- 선택된 날짜의 매매 계획 및 체결 판정 -->
+            <div id="trade-plan-box" class="hidden" style="background: var(--bg-body); border: 1px solid var(--border-color); padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">📅 <span id="selected-plan-date">YYYY-MM-DD</span></span>
+                    <span style="font-size: 0.9rem; color: var(--text-muted);">체결가 <strong id="selected-plan-close" style="color: var(--text-main); font-weight: 800; font-size: 1.1rem;">$0.00</strong></span>
+                </div>
+                
+                <!-- 다이어그램 영역 -->
+                <div id="diagram-container" style="margin-bottom: 20px;">
+                    <!-- 동적 다이어그램 렌더링 -->
+                </div>
+                
+                <!-- 체결 판정 목록 -->
+                <div style="background: rgba(0,0,0,0.02); border-radius: 12px; padding: 15px; margin-bottom: 18px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; font-weight: 600;">
+                        <span>체결 판정</span>
+                        <span id="decision-mode-badge" style="background: rgba(16,185,129,0.1); color: #10b981; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem;">자동 판정</span>
+                    </div>
+                    <div id="decision-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                        <!-- 동적 체결 판정 항목들 -->
+                    </div>
+                </div>
+
+                <!-- 최종 제출 버튼 -->
+                <button id="btn-submit-resolved-action" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700; border-radius: 10px; justify-content: center; display: flex; box-shadow: 0 4px 12px rgba(59,130,246,0.2);">
+                    체결 기록 등록
+                </button>
+
+                <!-- 수동 선택 토글 및 컨테이너 -->
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="javascript:void(0)" id="toggle-manual-override" style="font-size: 0.8rem; color: var(--text-muted); text-decoration: none; font-weight: 600; display: inline-block;">⚠️ 수동으로 기록 등록하기</a>
+                </div>
+                <div id="manual-override-container" class="hidden" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- 동적 수동 버튼들 -->
                 </div>
             </div>
             

@@ -868,132 +868,411 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("selected-plan-close").textContent = `$${closePrice.toFixed(2)}`;
         document.getElementById("manual-record-date").value = dateStr;
         
-        const container = document.getElementById("plan-buttons-container");
-        if (!container) return;
-        container.innerHTML = "";
-        
         const box = document.getElementById("trade-plan-box");
         if (box) box.classList.remove("hidden");
         
+        const diagramContainer = document.getElementById("diagram-container");
+        const decisionList = document.getElementById("decision-list");
+        const manualContainer = document.getElementById("manual-override-container");
+        const submitBtn = document.getElementById("btn-submit-resolved-action");
+        const toggleBtn = document.getElementById("toggle-manual-override");
+        
+        // Reset toggler
+        manualContainer.classList.add("hidden");
+        toggleBtn.textContent = "⚠️ 수동으로 기록 등록하기";
+        
+        const avgPrice = currentState.avg_price;
+        const starPrice = currentState.current_star_price;
+        const T = currentState.T;
+        const splits = currentState.split_count;
+        const qty = currentState.quantity;
+        const lotBudget = currentState.current_one_lot_budget;
+        
+        // 1. 다이어그램 렌더링
         const isTqqq = currentState.symbol === "TQQQ";
-        const flatQty = isTqqq ? 3 : 1;
-        const starQty = 1;
+        const tpPct = isTqqq ? 1.15 : 1.20;
+        const limitPrice = avgPrice * tpPct;
+        const starBuyPrice = starPrice - 0.01;
         
-        let buttons = [];
-        
-        if (currentState.T === 0) {
-            buttons.push({
-                label: `[첫 진입 매수 적용] $${closePrice.toFixed(2)} × 1주 (T+1.0)`,
-                action: "first_buy",
-                price: closePrice,
-                qty: 1,
-                color: "btn-primary"
-            });
+        let diagramHtml = "";
+        if (T === 0) {
+            diagramHtml = `
+                <div style="display: flex; height: 35px; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 1px solid var(--border-color);">
+                    <div style="flex: 1; background: #10b981; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.85rem;">
+                        첫 진입 매수 (100% 체결)
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                    <span>종가 진입</span>
+                    <span>$${closePrice.toFixed(2)}</span>
+                </div>
+            `;
         } else if (currentState.reverse_mode) {
-            const revBuyQty = Math.max(1, Math.floor((currentState.current_one_lot_budget / 4) / closePrice));
-            const revSellQty = currentState.quantity > 0 ? (currentState.reverse_sell_qty_unit || 1) : 1;
+            const buyActive = closePrice <= starPrice;
+            const sellActive = closePrice >= starPrice && qty > 0;
+            const escapeActive = closePrice >= avgPrice && qty > 0;
             
-            buttons.push({
-                label: `[리버스 매수 적용] $${closePrice.toFixed(2)} × ${revBuyQty}주`,
-                action: "reverse_buy",
-                price: closePrice,
-                qty: revBuyQty,
-                color: "btn-primary"
+            diagramHtml = `
+                <div style="display: flex; height: 35px; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 1px solid var(--border-color);">
+                    <div style="flex: 1; background: #10b981; opacity: ${buyActive ? '1' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white;">
+                        리버스 매수
+                    </div>
+                    <div style="flex: 1; background: #3b82f6; opacity: ${sellActive ? '1' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white;">
+                        리버스 매도
+                    </div>
+                    <div style="flex: 1; background: #8b5cf6; opacity: ${escapeActive ? '1' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem;">
+                        리버스 탈출
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); position: relative; height: 18px;">
+                    <span>별지점 $${starPrice.toFixed(2)}</span>
+                    <span>평단 $${avgPrice.toFixed(2)}</span>
+                </div>
+            `;
+        } else if (T < splits / 2) {
+            const buyAvgActive = closePrice <= avgPrice;
+            const buyStarActive = closePrice <= starBuyPrice;
+            const sellStarActive = closePrice >= starPrice && qty > 0;
+            const sellLimitActive = closePrice >= limitPrice && qty > 0;
+            
+            diagramHtml = `
+                <div style="display: flex; height: 35px; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 1px solid var(--border-color); position: relative;">
+                    <div style="flex: 1; background: #10b981; opacity: ${buyAvgActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white; transition: all 0.2s;">
+                        LOC 1/2
+                    </div>
+                    <div style="flex: 1; background: #10b981; opacity: ${buyStarActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white; transition: all 0.2s;">
+                        LOC 1/2
+                    </div>
+                    <div style="flex: 1; background: #3b82f6; opacity: ${sellStarActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white; transition: all 0.2s;">
+                        LOC 1/4
+                    </div>
+                    <div style="flex: 1; background: #3b82f6; opacity: ${sellLimitActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; transition: all 0.2s;">
+                        지정가 3/4
+                    </div>
+                </div>
+                <div style="position: relative; height: 30px; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px;">
+                    <div style="position: absolute; left: 25%; transform: translateX(-50%); text-align: center;">
+                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
+                        평단 $${avgPrice.toFixed(2)}
+                    </div>
+                    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; color: #f59e0b;">
+                        <div style="width: 1px; height: 5px; background: #f59e0b; margin: 0 auto 2px;"></div>
+                        ☆${(currentState.current_star_pct * 100).toFixed(1)}% $${starPrice.toFixed(2)}
+                    </div>
+                    <div style="position: absolute; left: 75%; transform: translateX(-50%); text-align: center;">
+                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
+                        +${isTqqq ? '15' : '20'}% $${limitPrice.toFixed(2)}
+                    </div>
+                </div>
+            `;
+        } else {
+            const buyStarActive = closePrice <= starBuyPrice;
+            const sellStarActive = closePrice >= starPrice && qty > 0;
+            const sellLimitActive = closePrice >= limitPrice && qty > 0;
+            
+            diagramHtml = `
+                <div style="display: flex; height: 35px; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 1px solid var(--border-color); position: relative;">
+                    <div style="flex: 2; background: #10b981; opacity: ${buyStarActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white; transition: all 0.2s;">
+                        LOC 1/1
+                    </div>
+                    <div style="flex: 1; background: #3b82f6; opacity: ${sellStarActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; border-right: 1px dashed white; transition: all 0.2s;">
+                        LOC 1/4
+                    </div>
+                    <div style="flex: 1; background: #3b82f6; opacity: ${sellLimitActive ? '1.0' : '0.2'}; text-align: center; line-height: 35px; font-weight: 700; color: white; font-size: 0.8rem; transition: all 0.2s;">
+                        지정가 3/4
+                    </div>
+                </div>
+                <div style="position: relative; height: 30px; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px;">
+                    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; color: #f59e0b;">
+                        <div style="width: 1px; height: 5px; background: #f59e0b; margin: 0 auto 2px;"></div>
+                        ☆${(currentState.current_star_pct * 100).toFixed(1)}% $${starPrice.toFixed(2)}
+                    </div>
+                    <div style="position: absolute; left: 75%; transform: translateX(-50%); text-align: center;">
+                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
+                        +${isTqqq ? '15' : '20'}% $${limitPrice.toFixed(2)}
+                    </div>
+                </div>
+            `;
+        }
+        diagramContainer.innerHTML = diagramHtml;
+        
+        // 2. 자동 판정 및 체결 판정 목록 구성
+        const half_budget = lotBudget / 2;
+        const calcQtyStar = starPrice > 0 ? Math.floor(half_budget / starPrice) : 0;
+        const calcQtyAvg = avgPrice > 0 ? Math.floor(half_budget / avgPrice) : 0;
+        const calcQtyLimit = qty;
+        const calcQtyQuarter = Math.max(1, Math.floor(qty * 0.25));
+        
+        let items = [];
+        let resolvedAction = "none";
+        let resolvedQty = 0;
+        let resolvedPrice = closePrice;
+        let resolvedLabel = "체결 없음 (T 변동 없음)";
+        
+        if (T === 0) {
+            const firstQty = Math.floor(lotBudget / closePrice);
+            items.push({
+                name: "첫 진입 매수",
+                detail: `$${closePrice.toFixed(2)} × ${firstQty}주`,
+                filled: true,
+                dotColor: "#10b981"
+            });
+            resolvedAction = "first_buy";
+            resolvedQty = firstQty;
+            resolvedPrice = closePrice;
+            resolvedLabel = "첫 진입 매수 기록 등록 (T+1.0)";
+        } else if (currentState.reverse_mode) {
+            const revBuyQty = Math.max(1, Math.floor((lotBudget / 4) / closePrice));
+            const revSellQty = currentState.reverse_sell_qty_unit || 1;
+            
+            const buyActive = closePrice <= starPrice;
+            const sellActive = closePrice >= starPrice && qty > 0;
+            const escapeActive = closePrice >= avgPrice && qty > 0;
+            
+            items.push({
+                name: "리버스 매수",
+                detail: `$${closePrice.toFixed(2)} × ${revBuyQty}주`,
+                filled: buyActive,
+                dotColor: "#10b981"
+            });
+            items.push({
+                name: "리버스 매도",
+                detail: `$${closePrice.toFixed(2)} × ${revSellQty}주`,
+                filled: sellActive,
+                dotColor: "#3b82f6"
             });
             
-            if (currentState.quantity > 0) {
-                buttons.push({
-                    label: `[무한 매도 적용] $${closePrice.toFixed(2)} × ${revSellQty}주`,
-                    action: "reverse_sell",
-                    price: closePrice,
-                    qty: revSellQty,
-                    color: "btn-outline"
-                });
+            if (escapeActive) {
+                resolvedAction = "reverse_sell";
+                resolvedQty = revSellQty;
+                resolvedPrice = closePrice;
+                resolvedLabel = "리버스 탈출 (평단 이상 회복) 등록";
+            } else if (sellActive) {
+                resolvedAction = "reverse_sell";
+                resolvedQty = revSellQty;
+                resolvedPrice = closePrice;
+                resolvedLabel = "리버스 매도 기록 등록";
+            } else if (buyActive) {
+                resolvedAction = "reverse_buy";
+                resolvedQty = revBuyQty;
+                resolvedPrice = closePrice;
+                resolvedLabel = "리버스 매수 기록 등록";
             }
         } else {
-            const fullQty = flatQty + starQty;
-            
-            buttons.push({
-                label: `[1회 매수 적용] $${closePrice.toFixed(2)} × ${fullQty}주 (T+1.0)`,
-                action: "full_buy",
-                price: closePrice,
-                qty: fullQty,
-                color: "btn-primary"
-            });
-            
-            buttons.push({
-                label: `[절반 매수 적용] $${closePrice.toFixed(2)} × ${flatQty}주 (T+0.5)`,
-                action: "half_buy",
-                price: closePrice,
-                qty: flatQty,
-                color: "btn-primary",
-                style: "background-color: #f97316; border-color: #f97316;"
-            });
-            
-            if (currentState.T >= currentState.split_count / 2 && currentState.quantity > 0) {
-                const locSellQty = isTqqq ? 3 : 1;
-                const quarterSellQty = Math.max(1, Math.floor(currentState.quantity * 0.25));
+            // Normal mode
+            if (T < splits / 2) {
+                const buyAvgActive = closePrice <= avgPrice;
+                const buyStarActive = closePrice <= starBuyPrice;
+                const sellStarActive = closePrice >= starPrice && qty > 0;
+                const sellLimitActive = closePrice >= limitPrice && qty > 0;
                 
-                buttons.push({
-                    label: `[무한 매도 적용] $${closePrice.toFixed(2)} × ${locSellQty}주 (후반전 LOC 매도)`,
-                    action: "reverse_sell",
-                    price: closePrice,
-                    qty: locSellQty,
-                    color: "btn-outline"
+                items.push({
+                    name: `${(currentState.current_star_pct * 100).toFixed(1)}% 매수 (별지점)`,
+                    detail: `$${closePrice.toFixed(2)} × ${calcQtyStar}주`,
+                    filled: buyStarActive,
+                    dotColor: "#10b981"
+                });
+                items.push({
+                    name: "평단 매수",
+                    detail: `$${avgPrice.toFixed(2)} × ${calcQtyAvg}주`,
+                    filled: buyAvgActive,
+                    dotColor: "#10b981"
+                });
+                items.push({
+                    name: `${(currentState.current_star_pct * 100).toFixed(1)}% 매도 (별지점)`,
+                    detail: `$${starPrice.toFixed(2)} × ${calcQtyQuarter}주`,
+                    filled: sellStarActive,
+                    dotColor: "#3b82f6"
+                });
+                items.push({
+                    name: "지정가 매도",
+                    detail: `$${limitPrice.toFixed(2)} × ${calcQtyLimit}주`,
+                    filled: sellLimitActive,
+                    dotColor: "#3b82f6"
                 });
                 
-                buttons.push({
-                    label: `[LOC 매도 적용] $${closePrice.toFixed(2)} × ${quarterSellQty}주 (별지점 LOC 매도)`,
-                    action: "quarter_sell",
-                    price: closePrice,
-                    qty: quarterSellQty,
-                    color: "btn-outline"
+                if (sellLimitActive) {
+                    resolvedAction = "take_profit";
+                    resolvedQty = calcQtyLimit;
+                    resolvedPrice = limitPrice;
+                    resolvedLabel = `전량 익절 등록 (T=0)`;
+                } else if (sellStarActive) {
+                    resolvedAction = "quarter_sell";
+                    resolvedQty = calcQtyQuarter;
+                    resolvedPrice = starPrice;
+                    resolvedLabel = `쿼터 매도 등록 (T × 0.75)`;
+                } else if (buyAvgActive && buyStarActive) {
+                    resolvedAction = "full_buy";
+                    resolvedQty = calcQtyStar + calcQtyAvg;
+                    resolvedPrice = closePrice;
+                    resolvedLabel = `1회 매수 등록 (T+1.0)`;
+                } else if (buyStarActive) {
+                    resolvedAction = "half_buy";
+                    resolvedQty = calcQtyStar;
+                    resolvedPrice = closePrice;
+                    resolvedLabel = `절반 매수 등록 (T+0.5)`;
+                }
+            } else {
+                // Second half
+                const buyStarActive = closePrice <= starBuyPrice;
+                const sellStarActive = closePrice >= starPrice && qty > 0;
+                const sellLimitActive = closePrice >= limitPrice && qty > 0;
+                
+                const calcQtyFullStar = starPrice > 0 ? Math.floor(lotBudget / starPrice) : 0;
+                
+                items.push({
+                    name: `${(currentState.current_star_pct * 100).toFixed(1)}% 매수 (별지점)`,
+                    detail: `$${closePrice.toFixed(2)} × ${calcQtyFullStar}주`,
+                    filled: buyStarActive,
+                    dotColor: "#10b981"
                 });
+                items.push({
+                    name: `${(currentState.current_star_pct * 100).toFixed(1)}% 매도 (별지점)`,
+                    detail: `$${starPrice.toFixed(2)} × ${calcQtyQuarter}주`,
+                    filled: sellStarActive,
+                    dotColor: "#3b82f6"
+                });
+                items.push({
+                    name: "지정가 매도",
+                    detail: `$${limitPrice.toFixed(2)} × ${calcQtyLimit}주`,
+                    filled: sellLimitActive,
+                    dotColor: "#3b82f6"
+                });
+                
+                if (sellLimitActive) {
+                    resolvedAction = "take_profit";
+                    resolvedQty = calcQtyLimit;
+                    resolvedPrice = limitPrice;
+                    resolvedLabel = `전량 익절 등록 (T=0)`;
+                } else if (sellStarActive) {
+                    resolvedAction = "quarter_sell";
+                    resolvedQty = calcQtyQuarter;
+                    resolvedPrice = starPrice;
+                    resolvedLabel = `쿼터 매도 등록 (T × 0.75)`;
+                } else if (buyStarActive) {
+                    resolvedAction = "full_buy";
+                    resolvedQty = calcQtyFullStar;
+                    resolvedPrice = closePrice;
+                    resolvedLabel = `1회 매수 등록 (T+1.0)`;
+                }
             }
         }
         
-        if (currentState.quantity > 0) {
-            const tpPct = currentState.symbol === "SOXL" ? 1.20 : 1.15;
-            const tpPrice = currentState.avg_price * tpPct;
-            buttons.push({
-                label: `[전량 익절 적용] $${tpPrice.toFixed(2)} × ${currentState.quantity}주 (T=0)`,
-                action: "take_profit",
-                price: tpPrice,
-                qty: currentState.quantity,
-                color: "btn-outline",
-                style: "border-color: #10b981; color: #10b981;"
-            });
+        let listHtml = "";
+        items.forEach(item => {
+            const color = item.filled ? item.dotColor : "var(--text-muted)";
+            const textColor = item.filled ? "var(--text-main)" : "var(--text-muted)";
+            const fontWeight = item.filled ? "700" : "normal";
+            const bulletSymbol = item.filled ? "●" : "○";
+            
+            listHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: ${textColor}; font-weight: ${fontWeight};">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: ${color}; font-size: 1.1rem; line-height: 1;">${bulletSymbol}</span>
+                        <span>${item.name}</span>
+                    </div>
+                    <span>${item.detail}</span>
+                </div>
+            `;
+        });
+        decisionList.innerHTML = listHtml;
+        
+        // 최종 제출 버튼 업데이트
+        submitBtn.textContent = resolvedLabel;
+        if (resolvedAction === "none") {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = "0.5";
+            submitBtn.style.cursor = "not-allowed";
+            submitBtn.style.background = "var(--text-muted)";
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = "1";
+            submitBtn.style.cursor = "pointer";
+            submitBtn.style.background = "var(--btn-primary-bg, #3b82f6)";
         }
         
-        buttons.forEach(b => {
+        // 리스너 교체 (중복 등록 방지용 클론)
+        const newSubmitBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+        
+        newSubmitBtn.addEventListener("click", async () => {
+            if (!confirm(`'${resolvedLabel}' 기록을 등록하시겠습니까?\n이 날짜(${dateStr}) 기준으로 체결 정보가 반영됩니다.`)) return;
+            try {
+                const res = await fetch(`/api/action?cycle_id=${activeCycleId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: resolvedAction,
+                        price: parseFloat(resolvedPrice.toFixed(4)),
+                        quantity: parseFloat(resolvedQty.toFixed(4)),
+                        trade_date: dateStr
+                    })
+                });
+                if (res.ok) {
+                    showToast("✅ 체결 기록이 정상적으로 등록되었습니다.", "success");
+                    box.classList.add("hidden");
+                    fetchState();
+                } else {
+                    const err = await res.json();
+                    alert("오류: " + (err.detail || "기록 실패"));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("네트워크 오류가 발생했습니다.");
+            }
+        });
+        
+        // 3. 수동 오버라이드 버튼 세팅
+        manualContainer.innerHTML = "";
+        let manualButtons = [];
+        
+        if (T === 0) {
+            manualButtons.push({ label: `첫 진입 매수 (T+1.0)`, action: "first_buy", price: closePrice, qty: Math.floor(lotBudget / closePrice) });
+        } else if (currentState.reverse_mode) {
+            const revBuyQty = Math.max(1, Math.floor((lotBudget / 4) / closePrice));
+            const revSellQty = currentState.reverse_sell_qty_unit || 1;
+            manualButtons.push({ label: `리버스 매수`, action: "reverse_buy", price: closePrice, qty: revBuyQty });
+            if (qty > 0) {
+                manualButtons.push({ label: `리버스 매도`, action: "reverse_sell", price: closePrice, qty: revSellQty });
+            }
+        } else {
+            const fullQty = calcQtyStar + calcQtyAvg;
+            manualButtons.push({ label: `1회 매수 강제 등록 (T+1.0)`, action: "full_buy", price: closePrice, qty: fullQty });
+            manualButtons.push({ label: `절반 매수 강제 등록 (T+0.5)`, action: "half_buy", price: closePrice, qty: calcQtyStar });
+            if (qty > 0) {
+                manualButtons.push({ label: `쿼터 매도 강제 등록 (T × 0.75)`, action: "quarter_sell", price: starPrice, qty: calcQtyQuarter });
+            }
+        }
+        
+        if (qty > 0) {
+            manualButtons.push({ label: `전량 익절 강제 등록 (T=0)`, action: "take_profit", price: limitPrice, qty: qty });
+        }
+        
+        manualButtons.forEach(mb => {
             const btn = document.createElement("button");
-            btn.className = `btn ${b.color}`;
+            btn.className = "btn btn-outline";
             btn.style.width = "100%";
-            btn.style.padding = "10px";
-            btn.style.fontSize = "0.9rem";
+            btn.style.padding = "8px";
+            btn.style.fontSize = "0.85rem";
             btn.style.fontWeight = "600";
             btn.style.justifyContent = "center";
-            if (b.style) {
-                btn.setAttribute("style", btn.getAttribute("style") + "; " + b.style);
-            }
-            btn.textContent = b.label;
+            btn.textContent = mb.label;
             
             btn.addEventListener("click", async () => {
-                if (!confirm(`'${b.label}' 매매를 기록하시겠습니까?`)) return;
-                
+                if (!confirm(`'${mb.label}'를 수동으로 강제 등록하시겠습니까?`)) return;
                 try {
                     const res = await fetch(`/api/action?cycle_id=${activeCycleId}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            action: b.action,
-                            price: b.price,
-                            quantity: b.qty,
+                            action: mb.action,
+                            price: parseFloat(mb.price.toFixed(4)),
+                            quantity: parseFloat(mb.qty.toFixed(4)),
                             trade_date: dateStr
                         })
                     });
                     if (res.ok) {
-                        showToast("✅ 성공적으로 기록되었습니다.", "success");
+                        showToast("✅ 성공적으로 강제 등록되었습니다.", "success");
                         box.classList.add("hidden");
                         fetchState();
                     } else {
@@ -1002,11 +1281,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 } catch (e) {
                     console.error(e);
-                    alert("네트워크 오류가 발생했습니다.");
                 }
             });
-            
-            container.appendChild(btn);
+            manualContainer.appendChild(btn);
+        });
+        
+        // 수동 토글 버튼 리스너 바인딩
+        const newToggleBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+        newToggleBtn.addEventListener("click", () => {
+            if (manualContainer.classList.contains("hidden")) {
+                manualContainer.classList.remove("hidden");
+                newToggleBtn.textContent = "❌ 수동 선택 접기";
+            } else {
+                manualContainer.classList.add("hidden");
+                newToggleBtn.textContent = "⚠️ 수동으로 기록 등록하기";
+            }
         });
     }
 });

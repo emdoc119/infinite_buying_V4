@@ -23,7 +23,7 @@ def run_tests():
     base_state.cash_remaining = Decimal('7332.5')
     strategy.calculate_daily_indicators(base_state)
     assert math.isclose(base_state.T, 10.67, abs_tol=0.001), f"T is {base_state.T}"
-    assert math.isclose(base_state.current_star_pct, 0.04665, abs_tol=0.0001), f"Star is {base_state.current_star_pct}"
+    assert math.isclose(base_state.current_star_pct, 0.069975, abs_tol=0.0001), f"Star is {base_state.current_star_pct}"
     
     # 2. T=0 예산
     params2 = StrategyParams(

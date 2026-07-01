@@ -122,6 +122,10 @@ class CycleStateMachine:
             if state.position.quantity == 0 or state.T == 0.0:
                 return "first_buy"
                 
+            from strategy.infinite_buying_v4 import InfiniteBuyingV4Strategy
+            engine = InfiniteBuyingV4Strategy()
+            engine.calculate_daily_indicators(state)
+            
             # 전반전(T < splits/2)과 후반전 분기
             if state.T < splits / 2:
                 # 오늘 시점의 1회 매수금 예산 계산
@@ -130,13 +134,8 @@ class CycleStateMachine:
                 else:
                     expected_budget = Decimal('0')
                 
-                # 별% 구하기 (TQQQ / SOXL 분기)
-                if state.params.symbol.value == "SOXL":
-                    star_pct = (20.0 - state.T) / 100.0 if splits == 20 else (20.0 - state.T * 0.5) / 100.0
-                else:  # TQQQ
-                    star_pct = (15.0 - state.T * 1.5) / 100.0 if splits == 20 else (15.0 - state.T * 0.75) / 100.0
-                    
-                star_price = state.position.avg_price * Decimal(str(1.0 + star_pct))
+                star_pct = state.current_star_pct
+                star_price = state.current_star_price
                 
                 # 각각 절반의 예산으로 매수 가능한 수량 계산
                 half_budget = expected_budget / Decimal('2')
