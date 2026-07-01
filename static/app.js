@@ -721,15 +721,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderHistory(fills) {
         const countEl = document.getElementById("history-count");
-        const listEl = document.getElementById("history-list");
         
-        if (!countEl || !listEl) return;
+        if (!countEl) return;
         
         countEl.textContent = fills ? fills.length : 0;
-        listEl.innerHTML = "";
         
         if (!fills || fills.length === 0) {
-            listEl.innerHTML = "<p style='color: var(--text-muted); text-align: center; padding: 15px; font-size: 0.9rem;'>기록된 매매 히스토리가 없습니다.</p>";
+            const tableBody = document.getElementById("history-table-body");
+            if (tableBody) tableBody.innerHTML = "<tr><td colspan='5' style='text-align: center; padding: 20px; color: var(--text-muted);'>기록된 매매 히스토리가 없습니다.</td></tr>";
             return;
         }
         
@@ -743,11 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         let html = "";
         for (let dateStr in groups) {
-            html += `
-                <div class="history-group" style="margin-bottom: 12px;">
-                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 6px;">${dateStr}</div>
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-            `;
+            let isFirstRowForDate = true;
             for (let f of groups[dateStr]) {
                 let actionText = "";
                 if (f.action === "full_buy") actionText = "1회 매수";
@@ -763,22 +758,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 let sideBg = f.side === "BUY" ? "#fef2f2" : "#eff6ff";
                 let totalVal = f.price * f.quantity;
                 
+                let dateCell = "";
+                if (isFirstRowForDate) {
+                    dateCell = `<td rowspan="${groups[dateStr].length}" style="border-bottom: 1px solid var(--border-color); font-weight: 600; color: var(--text-muted); padding: 10px 4px; vertical-align: middle;">${dateStr.slice(5)}</td>`;
+                }
+
                 html += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-body); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 0.9rem;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="background: ${sideBg}; color: ${sideColor}; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${actionText}</span>
-                            <span style="font-weight: 600; color: var(--text-main);">$${f.price.toFixed(2)} × ${f.quantity}주</span>
-                        </div>
-                        <div style="font-weight: 700; color: var(--text-muted);">$${totalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                    </div>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        ${dateCell}
+                        <td style="padding: 10px 4px; vertical-align: middle;">
+                            <span style="background: ${sideBg}; color: ${sideColor}; font-size: 0.75rem; font-weight: 700; padding: 3px 6px; border-radius: 4px;">${actionText}</span>
+                        </td>
+                        <td style="padding: 10px 4px; font-weight: 500; color: var(--text-main); vertical-align: middle;">$${f.price.toFixed(2)}</td>
+                        <td style="padding: 10px 4px; font-weight: 500; color: var(--text-main); vertical-align: middle;">${f.quantity}주</td>
+                        <td style="padding: 10px 4px; font-weight: 700; color: var(--text-muted); vertical-align: middle;">$${totalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    </tr>
                 `;
             }
-            html += `
-                    </div>
-                </div>
-            `;
         }
-        listEl.innerHTML = html;
+        const tableBody = document.getElementById("history-table-body");
+        if (tableBody) tableBody.innerHTML = html;
     }
 
     const btnDeleteLastHistory = document.getElementById("btn-delete-last-history");
