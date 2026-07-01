@@ -137,11 +137,15 @@ class CycleStateMachine:
                 star_pct = state.current_star_pct
                 star_price = state.current_star_price
                 
-                # 각각 절반의 예산으로 매수 가능한 수량 계산
+                # 각각 절반의 예산으로 매수 가능한 수량 계산 (V4.0 공식 일치)
                 half_budget = expected_budget / Decimal('2')
                 qty_star = int(half_budget / star_price) if star_price > 0 else 0
-                qty_avg = int(half_budget / state.position.avg_price) if state.position.avg_price > 0 else 0
-                total_buyable = qty_star + qty_avg
+                if state.position.avg_price > 0:
+                    total_buyable = int(expected_budget / state.position.avg_price)
+                    qty_avg = max(0, total_buyable - qty_star)
+                else:
+                    total_buyable = qty_star
+                    qty_avg = 0
                 
                 # 체결 수량이 예상 총 매수 수량의 70%를 넘으면 full_buy, 아니면 half_buy로 판단
                 if total_buyable > 0 and fill.quantity > Decimal(str(total_buyable)) * Decimal('0.7'):

@@ -999,7 +999,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // 2. 자동 판정 및 체결 판정 목록 구성
         const half_budget = lotBudget / 2;
         const calcQtyStar = starPrice > 0 ? Math.floor(half_budget / starPrice) : 0;
-        const calcQtyAvg = avgPrice > 0 ? Math.floor(half_budget / avgPrice) : 0;
+        let calcQtyAvg = 0;
+        if (avgPrice > 0) {
+            const totalBuyable = Math.floor(lotBudget / avgPrice);
+            calcQtyAvg = Math.max(0, totalBuyable - calcQtyStar);
+        }
         const calcQtyLimit = qty;
         const calcQtyQuarter = Math.max(1, Math.floor(qty * 0.25));
         
