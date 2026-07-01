@@ -234,7 +234,30 @@
             </div>
         </div>
 
-        <!-- 매매 기록 및 히스토리 카드 -->
+        <!-- 수동 제어 (Manual Override) -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                <span>수동 제어 (Manual Override)</span>
+            </h2>
+            <div style="margin-top: 15px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>T (회차) 강제 변경</label>
+                    <input type="number" step="0.5" id="override-t" class="input-light" placeholder="예: 5.0" style="width: 100px;">
+                </div>
+                <button id="btn-update-t" class="btn" style="background: var(--border-color); color: var(--text-main); padding: 10px 15px;">T값 반영</button>
+                
+                <div class="form-group" style="margin-bottom: 0; margin-left: 10px;">
+                    <label>폭락대비 주문 설정</label>
+                    <select id="override-crash" class="input-light" style="width: 120px; padding: 10px;">
+                        <option value="true">사용 (ON)</option>
+                        <option value="false">미사용 (OFF)</option>
+                    </select>
+                </div>
+                <button id="btn-update-crash" class="btn" style="background: var(--border-color); color: var(--text-main); padding: 10px 15px;">설정 반영</button>
+            </div>
+        </div>
+
+        <!-- 오늘 걸어야 할 주문 (Today's Orders) -->
         <div class="card" style="margin-top: 20px;">
             <h3>매매 기록</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">

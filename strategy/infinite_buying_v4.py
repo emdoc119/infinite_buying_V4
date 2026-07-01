@@ -26,9 +26,9 @@ class InfiniteBuyingV4Strategy:
         else:
             state.current_one_lot_budget = Decimal('0')
             
-        # 2. 별% 계산 (파라미터화된 alpha, beta 적용)
-        # alpha가 0.10 (10%)이고 beta가 2.0일 때, 10 - T/2(%)를 표현하기 위해 100으로 나눔
-        state.current_star_pct = float(state.params.star_alpha) - (T / (float(state.params.star_beta) * 100))
+        # 2. 별% 계산 (루프 앱 기준: T값의 정수 부분당 0.1%씩 차감)
+        # alpha가 0.10 (10%)일 때, 10% - (math.floor(T) * 0.1%)
+        state.current_star_pct = float(state.params.star_alpha) - (math.floor(T) * 0.001)
             
         # 3. 별지점 계산
         if state.reverse_mode:
@@ -105,25 +105,13 @@ class InfiniteBuyingV4Strategy:
                         price=state.current_star_price - Decimal('0.01'), quantity=Decimal(qty), tag="1회 매수 (별지점)"
                     ))
                     
-        # 폭락 대비 다중 매수: 전일종가 / (1.25, 1.50, 1.75, 2.00) × 1주
-        if state.params.sudden_drop_pct < 0 and current_price > 0:
-            crash_levels = [
-                (Decimal('1.25'), '-20%'),
-                (Decimal('1.50'), '-30%'),
-                (Decimal('1.75'), '-40%'),
-                (Decimal('2.00'), '-50%'),
-            ]
-            # sudden_drop_pct에 따라 건수 결정: -20%=1건, -30%=2건, -40%=3건, -50%=4건
-            max_levels = 1
-            if state.params.sudden_drop_pct <= Decimal('-0.30'): max_levels = 2
-            if state.params.sudden_drop_pct <= Decimal('-0.40'): max_levels = 3
-            if state.params.sudden_drop_pct <= Decimal('-0.50'): max_levels = 4
-            
-            for i in range(max_levels):
-                divisor, label = crash_levels[i]
-                crash_price = (current_price / divisor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # 폭락 대비 다중 매수 (LIMIT 지정가 매수)
+        if hasattr(state.params, 'crash_prep_enabled') and state.params.crash_prep_enabled and current_price > 0:
+            for drop_pct in state.params.crash_prep_ratios:
+                crash_price = (current_price * Decimal(str(1 + drop_pct))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                label = f"{(drop_pct * 100):.0f}%"
                 orders.append(OrderIntent(
-                    symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LOC,
+                    symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LIMIT,
                     price=crash_price, quantity=Decimal('1'), tag=f"폭락 대비 ({label})"
                 ))
                     

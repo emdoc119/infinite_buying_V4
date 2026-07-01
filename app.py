@@ -558,6 +558,34 @@ def auto_fill_action(symbol: str = Query("TQQQ")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+from pydantic import BaseModel
+
+class OverrideRequest(BaseModel):
+    T: Optional[float] = None
+    crash_prep_enabled: Optional[bool] = None
+
+@app.post("/api/manual_override")
+def manual_override(cycle_id: str, req: OverrideRequest):
+    current_cycle = cycles.get(cycle_id)
+    if not current_cycle:
+        raise HTTPException(status_code=400, detail="No active cycle")
+
+    messages = []
+    if req.T is not None:
+        current_cycle.T = req.T
+        strategy.calculate_daily_indicators(current_cycle)
+        messages.append(f"T값을 {req.T}로 변경했습니다.")
+        
+    if req.crash_prep_enabled is not None:
+        current_cycle.params.crash_prep_enabled = req.crash_prep_enabled
+        messages.append(f"폭락대비 설정을 {'ON' if req.crash_prep_enabled else 'OFF'}로 변경했습니다.")
+
+    if not messages:
+        return {"message": "변경된 항목이 없습니다."}
+        
+    save_cycles(cycles)
+    return {"message": ", ".join(messages)}
+
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

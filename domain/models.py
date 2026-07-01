@@ -37,6 +37,8 @@ class StrategyParams(BaseModel):
     star_alpha: Decimal = Field(default=Decimal('0.10'))
     star_beta: Decimal = Field(default=Decimal('2.0'))
     sudden_drop_pct: Decimal = Field(default=Decimal('-0.20'))
+    crash_prep_enabled: bool = True
+    crash_prep_ratios: List[float] = Field(default_factory=lambda: [-0.20, -0.30, -0.40, -0.50])
     is_auto_mode: bool = False
 
 class Position(BaseModel):
