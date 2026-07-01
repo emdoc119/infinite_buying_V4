@@ -3,6 +3,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentState = null;
     let prevReverseMode = false;
     
+    function isClosePriceFinalized(dStr) {
+        // 미국 동부시 기준 16:00 장마감 시점을 비교
+        const targetDate = new Date(dStr + "T16:00:00-04:00");
+        const now = new Date();
+        return now >= targetDate;
+    }
+    
     const tabCurrent = document.getElementById("tab-current");
     const tabAnalysis = document.getElementById("tab-analysis");
     const tabGuide = document.getElementById("tab-guide");
@@ -838,11 +845,16 @@ document.addEventListener("DOMContentLoaded", () => {
             card.style.cursor = "pointer";
             card.style.transition = "all 0.2s";
             
+            const finalized = isClosePriceFinalized(h.full_date);
+            const statusBadge = finalized ? "" : `<div style="font-size: 0.65rem; color: #ef4444; font-weight: 800; margin-bottom: 2px;">(장중 진행중)</div>`;
+            const labelText = finalized ? "종가" : "실시간가";
+            
             card.innerHTML = `
                 <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">
                     ${h.date} <span style="color: ${arrowColor}; font-size: 0.75rem;">${arrow}</span>
                 </div>
-                <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">종가</div>
+                ${statusBadge}
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">${labelText}</div>
                 <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-main);">$${h.close.toFixed(2)}</div>
             `;
             
@@ -880,6 +892,38 @@ document.addEventListener("DOMContentLoaded", () => {
         // Reset toggler
         manualContainer.classList.add("hidden");
         toggleBtn.textContent = "⚠️ 수동으로 기록 등록하기";
+        toggleBtn.style.display = "inline-block";
+        
+        // 장중 미확정 여부 확인
+        const finalized = isClosePriceFinalized(dateStr);
+        if (!finalized) {
+            document.getElementById("decision-mode-badge").textContent = "장중 대기 (미확정)";
+            document.getElementById("decision-mode-badge").style.color = "#ef4444";
+            document.getElementById("decision-mode-badge").style.background = "rgba(239, 68, 68, 0.1)";
+            
+            diagramContainer.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.05); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 15px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; text-align: center; margin: 15px 0; line-height: 1.6;">
+                    ⚠️ 해당 영업일은 아직 미국 정규장 마감 전이므로 종가가 미확정 상태입니다.<br>
+                    정규장 마감(한국 시간 오전 5시, 서머타임 기준) 이후 종가가 확정되면 체결 판정 및 기록 등록을 하실 수 있습니다.
+                </div>
+            `;
+            
+            decisionList.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 10px 0;">정규장 마감 전에는 판정할 수 없습니다.</div>`;
+            
+            submitBtn.textContent = "정규장 마감 후 등록 가능";
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = "0.5";
+            submitBtn.style.cursor = "not-allowed";
+            submitBtn.style.background = "var(--text-muted)";
+            
+            toggleBtn.style.display = "none";
+            return;
+        }
+
+        // 정상 모드 (장마감 후)
+        document.getElementById("decision-mode-badge").textContent = "자동 판정";
+        document.getElementById("decision-mode-badge").style.color = "#10b981";
+        document.getElementById("decision-mode-badge").style.background = "rgba(16, 185, 129, 0.1)";
         
         const avgPrice = currentState.avg_price;
         const starPrice = currentState.current_star_price;
@@ -924,9 +968,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         리버스 탈출
                     </div>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); position: relative; height: 18px;">
-                    <span>별지점 $${starPrice.toFixed(2)}</span>
-                    <span>평단 $${avgPrice.toFixed(2)}</span>
+                <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px; padding: 0 4px;">
+                    <div style="text-align: left;">📉 평단 <strong style="color: var(--text-main);">$${avgPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: center; color: #f59e0b;">☆ 별지점 <strong style="color: #f59e0b;">$${starPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: right;">🚀 익절(+${isTqqq ? '15' : '20'}%) <strong style="color: #10b981;">$${limitPrice.toFixed(2)}</strong></div>
                 </div>
             `;
         } else if (T < splits / 2) {
@@ -950,19 +995,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         지정가 3/4
                     </div>
                 </div>
-                <div style="position: relative; height: 30px; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px;">
-                    <div style="position: absolute; left: 25%; transform: translateX(-50%); text-align: center;">
-                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
-                        평단 $${avgPrice.toFixed(2)}
-                    </div>
-                    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; color: #f59e0b;">
-                        <div style="width: 1px; height: 5px; background: #f59e0b; margin: 0 auto 2px;"></div>
-                        ☆${(currentState.current_star_pct * 100).toFixed(1)}% $${starPrice.toFixed(2)}
-                    </div>
-                    <div style="position: absolute; left: 75%; transform: translateX(-50%); text-align: center;">
-                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
-                        +${isTqqq ? '15' : '20'}% $${limitPrice.toFixed(2)}
-                    </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px; padding: 0 4px;">
+                    <div style="text-align: left;">📉 평단 <strong style="color: var(--text-main);">$${avgPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: center; color: #f59e0b;">☆ 별지점(${(currentState.current_star_pct * 100).toFixed(1)}%) <strong style="color: #f59e0b;">$${starPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: right;">🚀 익절(+${isTqqq ? '15' : '20'}%) <strong style="color: #10b981;">$${limitPrice.toFixed(2)}</strong></div>
                 </div>
             `;
         } else {
@@ -982,15 +1018,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         지정가 3/4
                     </div>
                 </div>
-                <div style="position: relative; height: 30px; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px;">
-                    <div style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; color: #f59e0b;">
-                        <div style="width: 1px; height: 5px; background: #f59e0b; margin: 0 auto 2px;"></div>
-                        ☆${(currentState.current_star_pct * 100).toFixed(1)}% $${starPrice.toFixed(2)}
-                    </div>
-                    <div style="position: absolute; left: 75%; transform: translateX(-50%); text-align: center;">
-                        <div style="width: 1px; height: 5px; background: var(--border-color); margin: 0 auto 2px;"></div>
-                        +${isTqqq ? '15' : '20'}% $${limitPrice.toFixed(2)}
-                    </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-top: 5px; padding: 0 4px;">
+                    <div style="text-align: left;">📉 평단 <strong style="color: var(--text-main);">$${avgPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: center; color: #f59e0b;">☆ 별지점(${(currentState.current_star_pct * 100).toFixed(1)}%) <strong style="color: #f59e0b;">$${starPrice.toFixed(2)}</strong></div>
+                    <div style="text-align: right;">🚀 익절(+${isTqqq ? '15' : '20'}%) <strong style="color: #10b981;">$${limitPrice.toFixed(2)}</strong></div>
                 </div>
             `;
         }
