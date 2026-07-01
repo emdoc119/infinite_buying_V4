@@ -1004,8 +1004,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const totalBuyable = Math.floor(lotBudget / avgPrice);
             calcQtyAvg = Math.max(0, totalBuyable - calcQtyStar);
         }
-        const calcQtyLimit = qty;
-        const calcQtyQuarter = Math.max(1, Math.floor(qty * 0.25));
+        const calcQtyQuarter = qty > 0 ? Math.max(1, Math.floor(qty * 0.25)) : 0;
+        const calcQtyLimit = Math.max(0, qty - calcQtyQuarter);
         
         let items = [];
         let resolvedAction = "none";

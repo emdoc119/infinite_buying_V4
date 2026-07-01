@@ -161,20 +161,10 @@ class InfiniteBuyingV4Strategy:
             
         total_qty = state.position.quantity
         if total_qty > 0:
-            # LOC 매도 수량: 매수와 대칭 (전반전=평단 매수수량, 후반전=별값 매수수량)
-            loc_sell_qty = Decimal('0')
-            
-            if state.T < state.params.split_count / 2:
-                # 전반전: LOC 매도 수량 = 당일 평단 LOC 매수 수량
-                if state.current_star_price > 0 and state.position.avg_price > 0:
-                    half_budget = budget / Decimal('2')
-                    qty_star = Decimal(str(math.floor(half_budget / state.current_star_price)))
-                    total_buyable = Decimal(str(math.floor(budget / state.position.avg_price)))
-                    loc_sell_qty = total_buyable - qty_star
-            else:
-                # 후반전: LOC 매도 수량 = 당일 별값 LOC 매수 수량 (1회 전체)
-                if state.current_star_price > 0:
-                    loc_sell_qty = Decimal(str(math.floor(budget / state.current_star_price)))
+            # LOC 매도 수량: 보유 수량의 25% (1/4)
+            loc_sell_qty = (total_qty * Decimal('0.25')).quantize(Decimal('1'), rounding=ROUND_DOWN)
+            if loc_sell_qty < Decimal('1') and total_qty > 0:
+                loc_sell_qty = Decimal('1')
             
             # 안전장치: 매도 수량이 보유 수량 초과 방지
             loc_sell_qty = min(loc_sell_qty, total_qty)
