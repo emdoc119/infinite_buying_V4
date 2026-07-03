@@ -29,7 +29,7 @@
   "51c76b10": {
     "params": {
       "cycle_id": "51c76b10",
-      "name": "tqqq 1차",
+      "name": "tqqq 1\ucc28",
       "symbol": "TQQQ",
       "total_budget": "10000.0",
       "split_count": 30,
@@ -51,6 +51,7 @@
     "current_one_lot_budget": "338.9015576923076923076923077",
     "reverse_mode": false,
     "reverse_sell_qty_unit": "0",
-    "current_5d_avg": "75.42000122070313"
+    "current_5d_avg": "75.42000122070313",
+    "first_buy_price": "86.48"
   }
 }

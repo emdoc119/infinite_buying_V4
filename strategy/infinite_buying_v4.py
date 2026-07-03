@@ -30,17 +30,17 @@ class InfiniteBuyingV4Strategy:
         if drop_pct >= 0:
             return Decimal('0')
             
-        multipliers = []
+        divisors = []
         if drop_pct <= Decimal('-0.20'):
-            multipliers.append(Decimal('0.80'))
+            divisors.append(Decimal('1.25'))
         if drop_pct <= Decimal('-0.30'):
-            multipliers.append(Decimal('0.70'))
+            divisors.append(Decimal('1.50'))
         if drop_pct <= Decimal('-0.40'):
-            multipliers.append(Decimal('0.60'))
+            divisors.append(Decimal('1.75'))
         if drop_pct <= Decimal('-0.50'):
-            multipliers.append(Decimal('0.50'))
+            divisors.append(Decimal('2.00'))
             
-        reserve = sum(base_price * m for m in multipliers)
+        reserve = sum(base_price / d for d in divisors)
         return reserve.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     def calculate_daily_indicators(self, state: CycleState):
@@ -172,16 +172,16 @@ class InfiniteBuyingV4Strategy:
 
             levels = []
             if state.params.sudden_drop_pct <= Decimal('-0.20'):
-                levels.append((Decimal('0.80'), '-20%'))
+                levels.append((Decimal('1.25'), '-20%'))
             if state.params.sudden_drop_pct <= Decimal('-0.30'):
-                levels.append((Decimal('0.70'), '-30%'))
+                levels.append((Decimal('1.50'), '-30%'))
             if state.params.sudden_drop_pct <= Decimal('-0.40'):
-                levels.append((Decimal('0.60'), '-40%'))
+                levels.append((Decimal('1.75'), '-40%'))
             if state.params.sudden_drop_pct <= Decimal('-0.50'):
-                levels.append((Decimal('0.50'), '-50%'))
+                levels.append((Decimal('2.00'), '-50%'))
 
-            for multiplier, label in levels:
-                crash_price = (base_price * multiplier).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            for divisor, label in levels:
+                crash_price = (base_price / divisor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 orders.append(OrderIntent(
                     symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LOC,
                     price=crash_price, quantity=Decimal('1'), tag=f"폭락 대비 ({label})"
