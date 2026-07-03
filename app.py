@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Optional, Dict
 import yfinance as yf
 
