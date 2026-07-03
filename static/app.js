@@ -875,6 +875,11 @@ document.addEventListener("DOMContentLoaded", () => {
             
             scrollEl.appendChild(card);
         });
+        
+        // 최근 날짜(가장 오른쪽)가 먼저 보이도록 가로 스크롤을 끝으로 이동
+        setTimeout(() => {
+            scrollEl.scrollLeft = scrollEl.scrollWidth;
+        }, 100);
     }
 
     function selectDateCard(dateStr, closePrice) {
