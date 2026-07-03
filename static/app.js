@@ -590,6 +590,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 document.getElementById("val-qty").textContent = state.quantity;
                 document.getElementById("val-avg-price").textContent = `$${state.avg_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                document.getElementById("val-first-buy-price").textContent = state.first_buy_price > 0 ? `$${state.first_buy_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "-";
+                document.getElementById("val-crash-reserve").textContent = state.crash_reserve > 0 ? `$${state.crash_reserve.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "-";
                 document.getElementById("val-cash").textContent = `$${state.cash_remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 
                 document.getElementById("val-star-pct").textContent = `${state.current_star_pct > 0 ? '+' : ''}${(state.current_star_pct * 100).toFixed(2)}%`;

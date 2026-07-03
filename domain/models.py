@@ -77,6 +77,7 @@ class CycleState(BaseModel):
     current_star_pct: float = 0.15
     current_star_price: Decimal = Decimal('0')
     current_one_lot_budget: Decimal = Decimal('0')
+    first_buy_price: Decimal = Decimal('0')
     
     # 리버스 모드용 상태
     reverse_mode: bool = False

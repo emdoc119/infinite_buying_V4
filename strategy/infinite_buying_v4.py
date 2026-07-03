@@ -10,6 +10,39 @@ class InfiniteBuyingV4Strategy:
     Quantstack V4.0 오피셜 로직 기반 전략 엔진.
     """
     
+    def calculate_crash_reserve(self, state: CycleState) -> Decimal:
+        """폭락장 대비 예산 계산 (진입가 기준 -20%, -30%, -40%, -50% 등 각 단계별 1주 금액 합산)"""
+        base_price = Decimal('0')
+        if state.first_buy_price > Decimal('0'):
+            base_price = state.first_buy_price
+        elif state.position.avg_price > Decimal('0'):
+            base_price = state.position.avg_price
+        else:
+            if state.current_5d_avg > Decimal('0'):
+                base_price = state.current_5d_avg
+            else:
+                if state.params.symbol.value == "SOXL":
+                    base_price = Decimal('50.00')
+                else:
+                    base_price = Decimal('80.00')
+                    
+        drop_pct = state.params.sudden_drop_pct
+        if drop_pct >= 0:
+            return Decimal('0')
+            
+        multipliers = []
+        if drop_pct <= Decimal('-0.20'):
+            multipliers.append(Decimal('0.80'))
+        if drop_pct <= Decimal('-0.30'):
+            multipliers.append(Decimal('0.70'))
+        if drop_pct <= Decimal('-0.40'):
+            multipliers.append(Decimal('0.60'))
+        if drop_pct <= Decimal('-0.50'):
+            multipliers.append(Decimal('0.50'))
+            
+        reserve = sum(base_price * m for m in multipliers)
+        return reserve.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
     def calculate_daily_indicators(self, state: CycleState):
         """매일 바뀌는 1회매수금, 별%, 별지점을 계산하여 상태에 캐싱"""
         splits = state.params.split_count
@@ -22,9 +55,12 @@ class InfiniteBuyingV4Strategy:
                 state.T = float(total_invested / D)
         T = state.T
         
-        # 1. 1회 매수금 (변동형)
+        # 1. 1회 매수금 (변동형, 폭락 대비 금액을 차감한 후 계산)
+        crash_reserve = self.calculate_crash_reserve(state)
+        available_cash = max(Decimal('0'), state.cash_remaining - crash_reserve)
+        
         if float(splits) - T > 0:
-            state.current_one_lot_budget = state.cash_remaining / Decimal(str(float(splits) - T))
+            state.current_one_lot_budget = available_cash / Decimal(str(float(splits) - T))
         else:
             state.current_one_lot_budget = Decimal('0')
             
@@ -118,23 +154,34 @@ class InfiniteBuyingV4Strategy:
                         price=state.current_star_price - Decimal('0.01'), quantity=Decimal(qty), tag="1회 매수 (별지점)"
                     ))
                     
-        # 폭락 대비 다중 매수: 전일종가 / (1.25, 1.50, 1.75, 2.00) × 1주
-        if state.params.sudden_drop_pct < 0 and current_price > 0:
-            crash_levels = [
-                (Decimal('1.25'), '-20%'),
-                (Decimal('1.50'), '-30%'),
-                (Decimal('1.75'), '-40%'),
-                (Decimal('2.00'), '-50%'),
-            ]
-            # sudden_drop_pct에 따라 건수 결정: -20%=1건, -30%=2건, -40%=3건, -50%=4건
-            max_levels = 1
-            if state.params.sudden_drop_pct <= Decimal('-0.30'): max_levels = 2
-            if state.params.sudden_drop_pct <= Decimal('-0.40'): max_levels = 3
-            if state.params.sudden_drop_pct <= Decimal('-0.50'): max_levels = 4
-            
-            for i in range(max_levels):
-                divisor, label = crash_levels[i]
-                crash_price = (current_price / divisor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # 폭락 대비 다중 매수: 진입가 기준 -20%, -30%, -40%, -50% 지점에 1주씩
+        if state.params.sudden_drop_pct < 0:
+            base_price = Decimal('0')
+            if state.first_buy_price > Decimal('0'):
+                base_price = state.first_buy_price
+            elif state.position.avg_price > Decimal('0'):
+                base_price = state.position.avg_price
+            else:
+                if state.current_5d_avg > Decimal('0'):
+                    base_price = state.current_5d_avg
+                else:
+                    if state.params.symbol.value == "SOXL":
+                        base_price = Decimal('50.00')
+                    else:
+                        base_price = Decimal('80.00')
+
+            levels = []
+            if state.params.sudden_drop_pct <= Decimal('-0.20'):
+                levels.append((Decimal('0.80'), '-20%'))
+            if state.params.sudden_drop_pct <= Decimal('-0.30'):
+                levels.append((Decimal('0.70'), '-30%'))
+            if state.params.sudden_drop_pct <= Decimal('-0.40'):
+                levels.append((Decimal('0.60'), '-40%'))
+            if state.params.sudden_drop_pct <= Decimal('-0.50'):
+                levels.append((Decimal('0.50'), '-50%'))
+
+            for multiplier, label in levels:
+                crash_price = (base_price * multiplier).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 orders.append(OrderIntent(
                     symbol=state.params.symbol, side=Side.BUY, kind=OrderKind.LOC,
                     price=crash_price, quantity=Decimal('1'), tag=f"폭락 대비 ({label})"

@@ -138,6 +138,7 @@ def get_cycle_state(cycle_id: str = Query(...)):
         pass
         
     strategy.calculate_daily_indicators(current_cycle)
+    crash_reserve = strategy.calculate_crash_reserve(current_cycle)
     
     return {
         "active": True,
@@ -155,6 +156,8 @@ def get_cycle_state(cycle_id: str = Query(...)):
         "current_star_pct": float(current_cycle.current_star_pct),
         "current_star_price": float(current_cycle.current_star_price),
         "current_one_lot_budget": float(current_cycle.current_one_lot_budget),
+        "first_buy_price": float(current_cycle.first_buy_price),
+        "crash_reserve": float(crash_reserve),
         "initial_loc_pct": float(current_cycle.params.initial_loc_pct),
         "sudden_drop_pct": float(current_cycle.params.sudden_drop_pct),
         "is_auto_mode": current_cycle.params.is_auto_mode,

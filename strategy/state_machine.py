@@ -45,6 +45,7 @@ class CycleStateMachine:
             notional = price * quantity
             state.position.quantity = quantity
             state.position.avg_price = price
+            state.first_buy_price = price
             state.cash_remaining = state.params.total_budget - notional
             
             base_budget = state.params.total_budget / Decimal(str(state.params.split_count))
