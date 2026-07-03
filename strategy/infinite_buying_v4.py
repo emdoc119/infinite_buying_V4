@@ -55,9 +55,8 @@ class InfiniteBuyingV4Strategy:
                 state.T = float(total_invested / D)
         T = state.T
         
-        # 1. 1회 매수금 (변동형, 폭락 대비 금액을 차감한 후 계산)
-        crash_reserve = self.calculate_crash_reserve(state)
-        available_cash = max(Decimal('0'), state.cash_remaining - crash_reserve)
+        # 1. 1회 매수금 (변동형, Loop 앱과 일치시키기 위해 전체 예수금을 남은 회차로 나눕니다)
+        available_cash = state.cash_remaining
         
         if float(splits) - T > 0:
             state.current_one_lot_budget = available_cash / Decimal(str(float(splits) - T))
