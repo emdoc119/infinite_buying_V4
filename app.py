@@ -115,6 +115,17 @@ def update_sudden_drop_pct(req: UpdateSuddenDropPctRequest, cycle_id: str = Quer
     save_cycles(cycles)
     return {"status": "success"}
 
+class UpdateAutoModeRequest(BaseModel):
+    is_auto_mode: bool
+
+@app.patch("/api/cycle/auto_mode")
+def update_auto_mode(req: UpdateAutoModeRequest, cycle_id: str = Query(...)):
+    if cycle_id not in cycles:
+        raise HTTPException(status_code=400, detail="No active cycle for cycle_id")
+    cycles[cycle_id].params.is_auto_mode = req.is_auto_mode
+    save_cycles(cycles)
+    return {"status": "success", "is_auto_mode": req.is_auto_mode}
+
 @app.delete("/api/cycle/reset")
 def reset_cycle(cycle_id: str = Query(...)):
     if cycle_id in cycles:

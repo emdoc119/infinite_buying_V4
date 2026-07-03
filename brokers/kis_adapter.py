@@ -150,6 +150,42 @@ class KISBrokerAdapter(BrokerAdapter):
         # 아직 미구현 (TODO)
         return []
 
+    def check_today_orders_exist(self, symbol: str) -> bool:
+        """오늘(KST 기준) 해당 종목의 주문 내역(체결/미체결 포함 전체)이 존재하는지 확인"""
+        from datetime import datetime, timezone, timedelta
+        kst = timezone(timedelta(hours=9))
+        today_str = datetime.now(kst).strftime("%Y%m%d")
+        
+        token = self._get_access_token()
+        tr_id = "VTTS3035R" if self.paper_trading else "TTTS3035R"
+        headers = self._get_common_headers(tr_id)
+        
+        url = f"{self.base_url}/uapi/overseas-stock/v1/trading/inquire-ccnl"
+        params = {
+            "CANO": self.cano,
+            "ACNT_PRDT_CD": self.prdt_cd,
+            "PDNO": symbol,
+            "ORD_STRT_DT": today_str,
+            "ORD_END_DT": today_str,
+            "SLL_BUY_DVSN_CD": "00",
+            "CCLD_NCCS_DVSN": "00", # 전체 (체결+미체결)
+            "CTX_AREA_FK200": "",
+            "CTX_AREA_NK200": ""
+        }
+        
+        try:
+            res = requests.get(url, headers=headers, params=params)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("rt_cd") == "0":
+                    output = data.get("output", [])
+                    if output and len(output) > 0:
+                        return True
+        except Exception as e:
+            print(f"KIS check_today_orders_exist error: {e}")
+            
+        return False
+
     def get_fills(self, symbol: str, start_date: date, end_date: date) -> List[FillEvent]:
         token = self._get_access_token()
         tr_id = "VTTS3035R" if self.paper_trading else "TTTS3035R"

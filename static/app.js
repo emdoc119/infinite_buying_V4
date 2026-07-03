@@ -25,6 +25,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const cycleCardsContainer = document.getElementById("cycle-cards-container");
     const logoBtn = document.getElementById("logo-btn");
     const btnShowSetup = document.getElementById("btn-show-setup");
+    const toggleAutoMode = document.getElementById("toggle-auto-mode");
+    const autoModeBadge = document.getElementById("auto-mode-badge");
+
+    if (toggleAutoMode) {
+        toggleAutoMode.addEventListener("change", async (e) => {
+            if (!activeCycleId) return;
+            const isAuto = e.target.checked;
+            
+            try {
+                const res = await fetch(`/api/cycle/auto_mode?cycle_id=${activeCycleId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ is_auto_mode: isAuto })
+                });
+                
+                if (res.ok) {
+                    showToast(`자동 매매 모드가 ${isAuto ? 'ON' : 'OFF'} 되었습니다.`, "success");
+                    autoModeBadge.textContent = isAuto ? "ON" : "OFF";
+                    autoModeBadge.style.background = isAuto ? "#dcfce7" : "#e5e7eb";
+                    autoModeBadge.style.color = isAuto ? "#166534" : "#6b7280";
+                    if (currentState) {
+                        currentState.is_auto_mode = isAuto;
+                    }
+                } else {
+                    e.target.checked = !isAuto;
+                    showToast("자동 매매 모드 변경에 실패했습니다.", "danger");
+                }
+            } catch (err) {
+                console.error(err);
+                e.target.checked = !isAuto;
+                showToast("네트워크 오류가 발생했습니다.", "danger");
+            }
+        });
+    }
 
     function hideAllPanels() {
         homePanel.classList.add("hidden");
@@ -597,6 +631,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("val-star-pct").textContent = `${state.current_star_pct > 0 ? '+' : ''}${(state.current_star_pct * 100).toFixed(2)}%`;
                 document.getElementById("val-star-price").textContent = `$${state.current_star_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 document.getElementById("val-budget").textContent = `$${state.current_one_lot_budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+                if (toggleAutoMode && autoModeBadge) {
+                    const isAuto = state.is_auto_mode === true;
+                    toggleAutoMode.checked = isAuto;
+                    autoModeBadge.textContent = isAuto ? "ON" : "OFF";
+                    autoModeBadge.style.background = isAuto ? "#dcfce7" : "#e5e7eb";
+                    autoModeBadge.style.color = isAuto ? "#166534" : "#6b7280";
+                }
 
                 const tpText = document.getElementById("take-profit-text");
                 if(tpText) {

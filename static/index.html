@@ -6,6 +6,45 @@
     <title>무한매수법 4.0 (Lupe Style)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css?v=4">
+    <style>
+        /* Auto Mode Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+    </style>
 </head>
 <body>
     <div class="app-wrapper">
@@ -139,6 +178,24 @@
 
     <!-- 대시보드 화면 -->
     <main class="container hidden" id="status-panel">
+        <!-- 자동 매매 토글 패널 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-body); padding: 16px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 800; color: var(--text-main); font-size: 1.1rem;">🤖 자동 매매 모드</span>
+                    <span id="auto-mode-badge" style="background: #e5e7eb; color: #6b7280; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">OFF</span>
+                </div>
+                <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+                    ON 설정 시 매일 밤 10:30 (KST)에 봇이 자동으로 해당 회차의 LOC(또는 MOC) 주문을 전송합니다.<br>
+                    <span style="color: #ef4444; font-size: 0.8rem;">*첫 매수는 수동 진행, 그날 이미 주문이 들어갔다면 자동 스킵됩니다.</span>
+                </p>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="toggle-auto-mode">
+                <span class="slider"></span>
+            </label>
+        </div>
+
         <!-- T-Value 카드 -->
         <div class="card t-value-card">
             <div class="t-header">

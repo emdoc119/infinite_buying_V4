@@ -74,6 +74,69 @@ async def morning_sync_job():
         except Exception as e:
             print(f"[Scheduler] 아침 동기화 에러 ({cycle_id}): {e}")
 
+async def auto_trade_job():
+    from app import cycles, strategy
+    import os
+    from brokers.kis_adapter import KISBrokerAdapter
+    import yfinance as yf
+    from decimal import Decimal
+    
+    print("[Scheduler] 자동 매매(Auto Trade) 작업을 실행합니다.")
+    paper_trading = os.getenv("KIS_PAPER_TRADING", "True").lower() == "true"
+    adapter = KISBrokerAdapter(paper_trading=paper_trading)
+    
+    for cycle_id, state in cycles.items():
+        if state.status not in ["RUNNING", "REVERSE_MODE"]:
+            continue
+        if not getattr(state.params, "is_auto_mode", False):
+            continue
+            
+        try:
+            symbol = state.params.symbol.value
+            name_to_show = f"[{state.params.name}] {symbol}" if state.params.name else symbol
+            
+            # 1. 오늘 주문이 이미 존재하는지 확인
+            if adapter.check_today_orders_exist(symbol):
+                print(f"[Scheduler] {name_to_show} 오늘 주문이 이미 존재합니다. 자동 매매를 건너뜁니다.")
+                continue
+                
+            # 2. 가격 데이터 및 주문 생성
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="5d")
+            hist = hist.dropna(subset=['Close'])
+            if hist.empty:
+                continue
+                
+            ref_price = Decimal(str(hist.iloc[-1]['Close']))
+            buy_orders = strategy.build_buy_orders(state, ref_price)
+            sell_orders = strategy.build_sell_orders(state)
+            all_orders = buy_orders + sell_orders
+            
+            if not all_orders:
+                continue
+                
+            # 3. KIS API 전송
+            success_count = 0
+            fail_count = 0
+            for order in all_orders:
+                try:
+                    adapter.submit_order(order)
+                    success_count += 1
+                except Exception as e:
+                    fail_count += 1
+                    print(f"자동 주문 실패: {e}")
+                    
+            msg = f"🤖 [자동 매매 전송 완료]\n- 전송 성공: {success_count}건\n- 실패: {fail_count}건"
+            await notifier.send_briefing_async(
+                symbol=name_to_show,
+                cycle_id=cycle_id,
+                orders_summary=msg,
+                cash=f"{state.cash_remaining:.2f}",
+                current_t=state.T
+            )
+        except Exception as e:
+            print(f"[Scheduler] 자동 매매 에러 ({cycle_id}): {e}")
+
 def start_scheduler():
     trigger_briefing = CronTrigger(hour=22, minute=0, timezone="Asia/Seoul")
     scheduler.add_job(daily_briefing_job, trigger=trigger_briefing, id="daily_briefing", replace_existing=True)
@@ -81,5 +144,8 @@ def start_scheduler():
     trigger_sync = CronTrigger(hour=8, minute=0, timezone="Asia/Seoul")
     scheduler.add_job(morning_sync_job, trigger=trigger_sync, id="morning_sync", replace_existing=True)
     
+    trigger_auto = CronTrigger(hour=22, minute=30, timezone="Asia/Seoul")
+    scheduler.add_job(auto_trade_job, trigger=trigger_auto, id="auto_trade", replace_existing=True)
+    
     scheduler.start()
-    print("[Scheduler] 스케줄러가 시작되었습니다. (매일 22:00 브리핑, 08:00 체결 동기화)")
+    print("[Scheduler] 스케줄러가 시작되었습니다. (매일 22:00 브리핑, 22:30 자동주문, 08:00 체결 동기화)")
