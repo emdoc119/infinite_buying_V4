@@ -247,5 +247,17 @@ class TelegramNotifier:
         except Exception as e:
             print(f"텔레그램 메시지 전송 에러: {e}")
 
+    async def send_message(self, text: str):
+        if not self.app or not self.chat_id:
+            return
+        try:
+            await self.app.bot.send_message(
+                chat_id=self.chat_id,
+                text=text.strip(),
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"텔레그램 일반 메시지 전송 에러: {e}")
+
 notifier = TelegramNotifier()
 from datetime import datetime
