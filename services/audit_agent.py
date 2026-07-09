@@ -15,11 +15,7 @@ class AuditAgent:
             return True # 잔고 정보 없으면 무시
             
         expected_qty = current_cycle.position.quantity
-        for fill in new_fills:
-            if fill.side.name == "BUY":
-                expected_qty += fill.quantity
-            elif fill.side.name == "SELL":
-                expected_qty -= fill.quantity
+        # new_fills 는 이미 current_cycle 의 process_action 에서 반영되었으므로 이중으로 더하지 않습니다.
                 
         actual_qty = actual_balance.get("quantity", Decimal('0'))
         
