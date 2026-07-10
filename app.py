@@ -491,8 +491,18 @@ async def auto_sync_kis(cycle_id: str = Query(...)):
             # 잔여 현금 역산
             total_invested = balance["quantity"] * balance["avg_price"]
             current_cycle.cash_remaining = current_cycle.params.total_budget - total_invested
+            if current_cycle.cash_remaining > current_cycle.params.total_budget:
+                current_cycle.cash_remaining = current_cycle.params.total_budget
+                
+            # 잔고 기준 T값 재계산
+            budget_per_day = current_cycle.params.total_budget / Decimal(str(current_cycle.params.split_count))
+            if budget_per_day > 0:
+                raw_t = float(total_invested / budget_per_day)
+                current_cycle.T = round(raw_t * 2) / 2
+            else:
+                current_cycle.T = 0.0
             
-            # 전략 지표 재계산 (T값은 그대로 보존됨)
+            # 전략 지표 재계산
             strategy.calculate_daily_indicators(current_cycle)
             
             # 상태 재평가 (T가 전체 분할수 - 1을 넘어가면 리버스 모드)

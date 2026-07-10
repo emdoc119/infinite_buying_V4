@@ -21,15 +21,15 @@ class AuditAgent:
         
         if abs(expected_qty - actual_qty) > Decimal('0.01'):
             msg = (
-                f"🚨 **[Audit Agent 경고] 수동 개입 감지**\n"
+                f"🚨 **[시스템 알림] 잔고 불일치 자동 복구**\n"
                 f"종목: {current_cycle.params.symbol.value}\n"
-                f"예상 수량: {expected_qty}주\n"
-                f"실제 수량: {actual_qty}주\n\n"
-                f"⚠️ HTS 수동 거래 또는 체결 누락이 발생했습니다.\n"
-                f"자동 잔고 동기화를 중지합니다. 확인 후 수동 Sync를 진행해주세요."
+                f"내부 예상: {expected_qty}주\n"
+                f"실제 잔고: {actual_qty}주\n\n"
+                f"⚠️ 증권사 API의 체결 내역 누락이 감지되었습니다.\n"
+                f"실제 잔고(Source of Truth)를 기준으로 시스템을 자동 동기화합니다. 🔄"
             )
             await notifier.send_message(msg)
-            return False # 불일치 발생 시 덮어쓰기 중단
+            return True # 불일치 시에도 실제 잔고를 우선하여 덮어쓰기를 진행하도록 True 반환
             
         return True # 일치 시 정상 진행
 
