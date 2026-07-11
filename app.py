@@ -600,6 +600,18 @@ def auto_fill_action(symbol: str = Query("TQQQ")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/logs")
+def get_logs():
+    try:
+        import os
+        if os.path.exists("app.log"):
+            with open("app.log", "r") as f:
+                lines = f.readlines()
+            return {"logs": lines[-500:]}
+        return {"logs": ["app.log not found"]}
+    except Exception as e:
+        return {"error": str(e)}
+
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
