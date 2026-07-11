@@ -141,11 +141,11 @@ def start_scheduler():
     trigger_briefing = CronTrigger(hour=22, minute=0, timezone="Asia/Seoul")
     scheduler.add_job(daily_briefing_job, trigger=trigger_briefing, id="daily_briefing", replace_existing=True)
     
-    trigger_sync = CronTrigger(hour=8, minute=0, timezone="Asia/Seoul")
+    trigger_sync = CronTrigger(hour=9, minute=30, timezone="Asia/Seoul")
     scheduler.add_job(morning_sync_job, trigger=trigger_sync, id="morning_sync", replace_existing=True)
     
     trigger_auto = CronTrigger(hour=22, minute=30, timezone="Asia/Seoul")
     scheduler.add_job(auto_trade_job, trigger=trigger_auto, id="auto_trade", replace_existing=True)
     
     scheduler.start()
-    print("[Scheduler] 스케줄러가 시작되었습니다. (매일 22:00 브리핑, 22:30 자동주문, 08:00 체결 동기화)")
+    print("[Scheduler] 스케줄러가 시작되었습니다. (매일 22:00 브리핑, 22:30 자동주문, 09:30 체결 동기화)")
