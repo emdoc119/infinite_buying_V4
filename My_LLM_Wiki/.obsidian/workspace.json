@@ -11,10 +11,10 @@
             "id": "b840088ebb674ce8",
             "type": "leaf",
             "state": {
-              "type": "empty",
+              "type": "graph",
               "state": {},
-              "icon": "lucide-file",
-              "title": "새 탭"
+              "icon": "lucide-git-fork",
+              "title": "그래프 뷰"
             }
           }
         ]
@@ -34,16 +34,12 @@
             "id": "bcfffbe6b86f2f5d",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "bases",
               "state": {
-                "file": "무제.canvas",
-                "viewState": {
-                  "x": 0,
-                  "y": 0,
-                  "zoom": 0
-                }
+                "file": "무제.base",
+                "viewName": "표"
               },
-              "icon": "lucide-layout-dashboard",
+              "icon": "lucide-table",
               "title": "무제"
             }
           },
@@ -196,8 +192,12 @@
       "bases:새 베이스 생성하기": false
     }
   },
-  "active": "bcfffbe6b86f2f5d",
+  "active": "b840088ebb674ce8",
   "lastOpenFiles": [
+    "무제 2.canvas",
+    "무제 1.canvas",
+    "2026-07-20.md",
+    "무제.base",
     "무제.canvas",
     "논문 아이디어 구체화 하기 with LLM.md",
     "논문 서론 쓰기.md",

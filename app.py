@@ -429,6 +429,54 @@ from datetime import date
 
 from services.audit_agent import audit_agent
 
+@app.post("/api/action/auto_trade")
+async def auto_trade_kis(cycle_id: str = Query(...)):
+    current_cycle = cycles.get(cycle_id)
+    if not current_cycle:
+        raise HTTPException(status_code=400, detail="No active cycle")
+    
+    if not current_cycle.params.is_auto_mode:
+        return {"message": "자동 매매 모드가 아닙니다.", "results": []}
+
+    try:
+        paper_trading = os.getenv("KIS_PAPER_TRADING", "True").lower() == "true"
+        adapter = KISBrokerAdapter(paper_trading=paper_trading)
+        
+        symbol = current_cycle.params.symbol.value
+        if adapter.check_today_orders_exist(symbol):
+            return {"message": "오늘 주문이 이미 존재합니다. 자동 매매를 건너뜁니다.", "results": []}
+            
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="5d")
+        hist = hist.dropna(subset=['Close'])
+        if hist.empty or len(hist) < 2:
+            raise HTTPException(status_code=500, detail="데이터를 불러오지 못했습니다.")
+        
+        ref_price = Decimal(str(hist.iloc[-2]['Close']))
+        buy_orders = strategy.build_buy_orders(current_cycle, ref_price)
+        sell_orders = strategy.build_sell_orders(current_cycle)
+        all_orders = buy_orders + sell_orders
+        
+        results = []
+        if all_orders:
+            for order in all_orders:
+                try:
+                    odno = adapter.submit_order(order)
+                    results.append({"tag": order.tag, "status": "SUCCESS", "odno": odno})
+                except Exception as e:
+                    results.append({"tag": order.tag, "status": "FAIL", "detail": str(e)})
+                    
+        success_count = sum(1 for r in results if r["status"] == "SUCCESS")
+        fail_count = len(results) - success_count
+        
+        return {
+            "message": f"총 {len(results)}건 주문 전송 완료 (성공: {success_count}, 실패: {fail_count})",
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/action/auto_sync")
 async def auto_sync_kis(cycle_id: str = Query(...)):
     current_cycle = cycles.get(cycle_id)

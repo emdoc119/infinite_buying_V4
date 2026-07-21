@@ -6,18 +6,28 @@ from services.notifier import notifier
 
 scheduler = AsyncIOScheduler()
 
-async def daily_briefing_job():
-    from app import cycles, strategy
+async def get_active_cycles():
     import httpx
-    
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get("http://127.0.0.1:8081/api/cycles")
+            if res.status_code == 200:
+                data = res.json()
+                return data.get("cycles", [])
+    except Exception as e:
+        print(f"[Scheduler] API 통신 에러: {e}")
+    return []
+
+async def daily_briefing_job():
+    import httpx
     print("[Scheduler] 일일 브리핑 작업을 실행합니다.")
     
-    for cycle_id, state in cycles.items():
-        if state.status not in ["RUNNING", "REVERSE_MODE"]:
-            continue
-            
+    cycles = await get_active_cycles()
+    for c in cycles:
+        cycle_id = c["cycle_id"]
+        name_to_show = f"[{c['name']}] {c['symbol']}" if c.get("name") else c["symbol"]
+        
         try:
-            # 실시간 가격(또는 종가)을 로컬 서버에서 가져오기
             async with httpx.AsyncClient() as client:
                 res = await client.get(f"http://127.0.0.1:8081/api/orders/today?cycle_id={cycle_id}")
                 if res.status_code != 200:
@@ -25,7 +35,6 @@ async def daily_briefing_job():
                 
                 data = res.json()
                 orders = data.get("orders", [])
-                name_to_show = f"[{state.params.name}] {state.params.symbol.value}" if state.params.name else state.params.symbol.value
                 
                 if not orders:
                     orders_summary = "오늘 생성될 주문이 없습니다."
@@ -35,25 +44,32 @@ async def daily_briefing_job():
                         lines.append(f"- [{o['kind']}] {o['quantity']}주 {o['tag']} @ ${o['price']:.2f}")
                     orders_summary = "\n".join(lines)
                 
-                await notifier.send_briefing_async(
-                    symbol=name_to_show,
-                    cycle_id=cycle_id,
-                    orders_summary=orders_summary,
-                    cash=f"{state.cash_remaining:.2f}",
-                    current_t=state.T
-                )
+                # 상태 조회
+                state_res = await client.get(f"http://127.0.0.1:8081/api/cycle?cycle_id={cycle_id}")
+                if state_res.status_code == 200:
+                    state_data = state_res.json()
+                    cash = state_data.get("cash_remaining", "0")
+                    current_t = state_data.get("T", 0.0)
+                    
+                    await notifier.send_briefing_async(
+                        symbol=name_to_show,
+                        cycle_id=cycle_id,
+                        orders_summary=orders_summary,
+                        cash=f"{float(cash):.2f}",
+                        current_t=current_t
+                    )
         except Exception as e:
             print(f"[Scheduler] 브리핑 에러 ({cycle_id}): {e}")
 
 async def morning_sync_job():
-    from app import cycles
     import httpx
-    
     print("[Scheduler] 아침 체결 동기화 작업을 실행합니다.")
-    for cycle_id, state in cycles.items():
-        if state.status not in ["RUNNING", "REVERSE_MODE"]:
-            continue
-            
+    
+    cycles = await get_active_cycles()
+    for c in cycles:
+        cycle_id = c["cycle_id"]
+        name_to_show = f"[{c['name']}] {c['symbol']}" if c.get("name") else c["symbol"]
+        
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 res = await client.post(f"http://127.0.0.1:8081/api/action/auto_sync?cycle_id={cycle_id}")
@@ -64,76 +80,60 @@ async def morning_sync_job():
                 else:
                     message = f"에러: {res.text}"
                     
-                name_to_show = f"[{state.params.name}] {state.params.symbol.value}" if state.params.name else state.params.symbol.value
+                state_res = await client.get(f"http://127.0.0.1:8081/api/cycle?cycle_id={cycle_id}")
+                cash = "0"
+                current_t = 0.0
+                if state_res.status_code == 200:
+                    state_data = state_res.json()
+                    cash = state_data.get("cash_remaining", "0")
+                    current_t = state_data.get("T", 0.0)
+                    
                 await notifier.send_sync_report_async(
                     symbol=name_to_show,
                     sync_message=message,
-                    cash=f"{state.cash_remaining:.2f}",
-                    current_t=state.T
+                    cash=f"{float(cash):.2f}",
+                    current_t=current_t
                 )
         except Exception as e:
             print(f"[Scheduler] 아침 동기화 에러 ({cycle_id}): {e}")
 
 async def auto_trade_job():
-    from app import cycles, strategy
-    import os
-    from brokers.kis_adapter import KISBrokerAdapter
-    import yfinance as yf
-    from decimal import Decimal
-    
+    import httpx
     print("[Scheduler] 자동 매매(Auto Trade) 작업을 실행합니다.")
-    paper_trading = os.getenv("KIS_PAPER_TRADING", "True").lower() == "true"
-    adapter = KISBrokerAdapter(paper_trading=paper_trading)
     
-    for cycle_id, state in cycles.items():
-        if state.status not in ["RUNNING", "REVERSE_MODE"]:
-            continue
-        if not getattr(state.params, "is_auto_mode", False):
-            continue
-            
+    cycles = await get_active_cycles()
+    for c in cycles:
+        cycle_id = c["cycle_id"]
+        name_to_show = f"[{c['name']}] {c['symbol']}" if c.get("name") else c["symbol"]
+        
         try:
-            symbol = state.params.symbol.value
-            name_to_show = f"[{state.params.name}] {symbol}" if state.params.name else symbol
-            
-            # 1. 오늘 주문이 이미 존재하는지 확인
-            if adapter.check_today_orders_exist(symbol):
-                print(f"[Scheduler] {name_to_show} 오늘 주문이 이미 존재합니다. 자동 매매를 건너뜁니다.")
-                continue
-                
-            # 2. 가격 데이터 및 주문 생성
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="5d")
-            hist = hist.dropna(subset=['Close'])
-            if hist.empty:
-                continue
-                
-            ref_price = Decimal(str(hist.iloc[-1]['Close']))
-            buy_orders = strategy.build_buy_orders(state, ref_price)
-            sell_orders = strategy.build_sell_orders(state)
-            all_orders = buy_orders + sell_orders
-            
-            if not all_orders:
-                continue
-                
-            # 3. KIS API 전송
-            success_count = 0
-            fail_count = 0
-            for order in all_orders:
-                try:
-                    adapter.submit_order(order)
-                    success_count += 1
-                except Exception as e:
-                    fail_count += 1
-                    print(f"자동 주문 실패: {e}")
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                res = await client.post(f"http://127.0.0.1:8081/api/action/auto_trade?cycle_id={cycle_id}")
+                if res.status_code == 200:
+                    data = res.json()
+                    msg = data.get("message", "")
                     
-            msg = f"🤖 [자동 매매 전송 완료]\n- 전송 성공: {success_count}건\n- 실패: {fail_count}건"
-            await notifier.send_briefing_async(
-                symbol=name_to_show,
-                cycle_id=cycle_id,
-                orders_summary=msg,
-                cash=f"{state.cash_remaining:.2f}",
-                current_t=state.T
-            )
+                    if "건너뜁니다" in msg or "아닙니다" in msg:
+                        print(f"[Scheduler] {name_to_show} {msg}")
+                        continue
+                    
+                    state_res = await client.get(f"http://127.0.0.1:8081/api/cycle?cycle_id={cycle_id}")
+                    cash = "0"
+                    current_t = 0.0
+                    if state_res.status_code == 200:
+                        state_data = state_res.json()
+                        cash = state_data.get("cash_remaining", "0")
+                        current_t = state_data.get("T", 0.0)
+                    
+                    await notifier.send_briefing_async(
+                        symbol=name_to_show,
+                        cycle_id=cycle_id,
+                        orders_summary=f"🤖 [자동 매매 전송 결과]\n{msg}",
+                        cash=f"{float(cash):.2f}",
+                        current_t=current_t
+                    )
+                else:
+                    print(f"[Scheduler] {name_to_show} 자동 매매 호출 실패: {res.text}")
         except Exception as e:
             print(f"[Scheduler] 자동 매매 에러 ({cycle_id}): {e}")
 
